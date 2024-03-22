@@ -11,6 +11,7 @@ import { validateAndTransformExtractRules } from './extract_rules_utils.js';
 await Actor.init();
 
 const server = createServer(async (req, res) => {
+    const requestRecieved = Date.now();
     log.info(`URL: ${req.method} ${req.url}`);
     try {
         const params = parse(req.url!.slice(2));
@@ -38,7 +39,6 @@ const server = createServer(async (req, res) => {
 
         const requestDetails: RequestDetails = {
             usedApifyProxies: true,
-            // proxyOptions,
             requestErrors: [],
             resolvedUrl: null,
             responseHeaders: null,
@@ -57,6 +57,10 @@ const server = createServer(async (req, res) => {
                 extractRules: useExtractRules ? validateAndTransformExtractRules(inputtedExtractRules) : null,
                 inputtedUrl: req.url as string,
                 parsedInputtedParams: params,
+                timeMeasures: [{
+                    event: 'request received',
+                    time: requestRecieved,
+                }],
             },
         };
 

@@ -20,6 +20,11 @@ export interface ExtractRule {
 
 export type ExtractRules = Record<string, ExtractRule>;
 
+export interface TimeMeasure {
+    event: 'request received' | 'pre-navigation hook' | 'page loaded' | 'handler end' | 'error' | 'failed request',
+    time: number,
+}
+
 export interface UserData {
     verbose: boolean,
     takeScreenshot: boolean,
@@ -27,4 +32,5 @@ export interface UserData {
     extractRules: ExtractRules | null,
     inputtedUrl: string,
     parsedInputtedParams: Record<string, string | string[] | undefined>,
+    timeMeasures: TimeMeasure[],
 }
