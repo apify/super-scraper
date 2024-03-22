@@ -7,6 +7,7 @@
 		"node": ">=18.0.0"
 	},
 	"dependencies": {
+		"@crawlee/memory-storage": "^3.8.2",
 		"apify": "^3.1.10",
 		"cheerio": "^1.0.0-rc.12",
 		"crawlee": "^3.5.4",

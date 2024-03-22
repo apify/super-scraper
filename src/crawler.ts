@@ -1,14 +1,19 @@
-import { Actor } from 'apify';
+import { Actor, RequestQueue } from 'apify';
 import { PlaywrightCrawler } from 'crawlee';
 import { CheerioAPI, load } from 'cheerio';
+import { MemoryStorage } from '@crawlee/memory-storage';
 import { UserData, VerboseResult } from './types.js';
 import { sendErrorResponseById, sendSuccResponseById } from './responses.js';
 import { scrapeBasedOnExtractRules } from './extract_rules_utils.js';
+
+const client = new MemoryStorage();
+const queue = await RequestQueue.open(undefined, { storageClient: client });
 
 export const crawler = new PlaywrightCrawler({
     keepAlive: true,
     proxyConfiguration: await Actor.createProxyConfiguration(),
     maxRequestRetries: 4,
+    requestQueue: queue,
     errorHandler: async ({ request }, err) => {
         const { requestDetails } = request.userData as UserData;
         requestDetails.requestErrors.push({
