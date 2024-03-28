@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { RequestDetails, UserData } from './types.js';
 import { adddRequest, createAndStartCrawler } from './crawlers.js';
 import { validateAndTransformExtractRules } from './extract_rules_utils.js';
+import { parseAndValidateInstructions } from './instructions_utils.js';
 
 await Actor.init();
 
@@ -34,6 +35,9 @@ const server = createServer(async (req, res) => {
             inputtedExtractRules = JSON.parse(params.extract_rules as string);
         }
 
+        const doInstructions = !!params.js_instructions;
+        const instructions = doInstructions ? parseAndValidateInstructions(params.js_instructions as string) : [];
+
         const requestDetails: RequestDetails = {
             usedApifyProxies: true,
             requestErrors: [],
@@ -58,6 +62,7 @@ const server = createServer(async (req, res) => {
                     event: 'request received',
                     time: requestRecieved,
                 }],
+                instructions,
             },
         };
 
