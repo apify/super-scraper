@@ -36,6 +36,16 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
         proxyConfiguration: proxyConfig,
         maxRequestRetries: 4,
         requestQueue: queue,
+        statisticsOptions: {
+            persistenceOptions: {
+                enable: false,
+            },
+        },
+        sessionPoolOptions: {
+            persistenceOptions: {
+                enable: false,
+            },
+        },
         errorHandler: async ({ request }, err) => {
             const { requestDetails, timeMeasures } = request.userData as UserData;
             timeMeasures.push({
