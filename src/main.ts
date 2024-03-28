@@ -4,7 +4,7 @@ import { createServer } from 'http';
 import { parse } from 'querystring';
 import { v4 as uuidv4 } from 'uuid';
 import { RequestDetails, UserData } from './types.js';
-import { adddRequest, createAndStartCrawler } from './crawler.js';
+import { adddRequest, createAndStartCrawler } from './crawlers.js';
 import { validateAndTransformExtractRules } from './extract_rules_utils.js';
 
 await Actor.init();

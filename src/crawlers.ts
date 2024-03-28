@@ -1,5 +1,5 @@
 import { Actor, ProxyConfigurationOptions, RequestQueue, log } from 'apify';
-import { PlaywrightCrawler, RequestOptions, sleep } from 'crawlee';
+import { PlaywrightCrawler, RequestOptions } from 'crawlee';
 import { CheerioAPI, load } from 'cheerio';
 import { MemoryStorage } from '@crawlee/memory-storage';
 import { ServerResponse } from 'http';
@@ -149,7 +149,6 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
     });
 
     crawler.run().then(() => log.warning(`Crawler ended`, { proxyOptions }), () => {});
-    await sleep(1500);
     crawlers.set(JSON.stringify(proxyOptions), crawler);
     log.info('Crawler ready 🫡', { proxyOptions });
     return crawler;
