@@ -55,6 +55,10 @@ const performInstruction = async (instruction: Instruction, page: Page) => {
                 await page.mouse.wheel(0, paramY);
                 return 'success';
             }
+            case 'wait_browser': {
+                await page.waitForLoadState(instruction.param as 'load' | 'domcontentloaded' | 'networkidle');
+                return 'success';
+            }
             default: {
                 return 'unknown instruction';
             }

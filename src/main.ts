@@ -63,6 +63,18 @@ const server = createServer(async (req, res) => {
             }
         }
 
+        if (useBrowser && params.wait_browser) {
+            const waitForBrowserState = params.wait_browser as string;
+            if (!['load', 'domcontentloaded', 'networkidle'].includes(waitForBrowserState)) {
+                throw new Error('Unsupported value for wait_browser parameter');
+            } else {
+                instructions.unshift({
+                    action: 'wait_browser',
+                    param: waitForBrowserState,
+                });
+            }
+        }
+
         const requestDetails: RequestDetails = {
             usedApifyProxies: true,
             requestErrors: [],
