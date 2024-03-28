@@ -109,6 +109,10 @@ const server = createServer(async (req, res) => {
             };
         }
 
+        if (params.cookies) {
+            finalRequest.headers!.Cookie = params.cookies as string;
+        }
+
         await adddRequest(finalRequest, proxyOptions, res);
     } catch (e) {
         const errorMessage = {
