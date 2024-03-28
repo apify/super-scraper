@@ -5,13 +5,13 @@
 | parameter | description | dev notes |
 | -------- | ------- | ----- |
 | `url` | URL to be scraped, required parameter |
-| `proxy_country` | Country locations of proxies | not working temporarily, some things need to be figured out |
-| `proxy_group` | Proxy groups, for example `RESIDENTIAL`. Only 1 group supported now | not working temporarily, some things need to be figured out |
 | `verbose` | Will return verbose JSON response. Can be `true` or `false` |
-| `use_headers` | Can be either `true` or `false`. If set to `true`, headers in the request to this Actor prefixed with `apf-` will be forwarded to the target website (prefix will be trimmed) |
-| `extract_rules` | Stringified JSON with custom rules how to extract data from the website. More [here](#extract-rules) |
-| `use_browser` | Specify, if you want to scrape the webpage with or without loading it in a headless browser, can be `true` or `false`, default: `false` | maybe this can be `true` by default
+| `headers` | Headers to be used in the request |
+| `extract_rules` | Stringified JSON with custom rules how to extract data from the website. More [here](#extract-rules). |
+| `use_browser` | Specify, if you want to scrape the webpage with or without loading it in a headless browser, can be `true` or `false`, default: `false` | probably should be `true` by default
 | `screenshot` | Get screenshot of the full page in base64 in the verbose response, can be `true` or `false`, default: `false` (`use_browser` and `verbose` must be set to `true`) | maybe doesn't have to be returned only in the `verbose` response (body of the response would be only the image)
+| `proxy_options` | [ProxyConfigurationOptions](https://docs.apify.com/sdk/js/reference/interface/ProxyConfigurationOptions) to be used for the request. | could be broken up to individual parameters (such as `proxy_urls`, `proxy_country` and `proxy-group`) |
+| `js_instructions` | Instructions/actions that will be performed when opening the page. More [here](#js-instructions). | |
 
 ### Extract rules
 
@@ -108,11 +108,20 @@ console.log(resp.data);
 
 - full url: `https://yh8jx5mCjfv69espW.apify.actor/?url=https:%2F%2Fblog.apify.com%2F&&extract_rules=%7B%22title%22:%22h1%22,%22allLinks%22:%7B%22selector%22:%22a%22,%22type%22:%22list%22,%22result%22:%7B%22title%22:%22a%22,%22link%22:%22a%40link%22%7D%7D%7D`
 
+### JS Instructions
+
+- https://www.scrapingbee.com/documentation/#js_scenario
+- supported: wait, click, wait_for, scroll x/y, fill
+- todo
+
 ## todo/ideas
 
-- custom js instructions as a parameter (https://www.scrapingbee.com/documentation/#js_scenario)
-- ability to wait for some timeout/selector (specified using a parameter)
-- figure out proxies
-- refactor saving to the dataset dataset + add more data (such as request/response ID, request headers...)
-- add boolean parameter to block resources (images, css...)
-- extra handling of cookies (could be passed in a separate `cookie` parameter, could be returned in a separate field in the `verbose` response)
+- reamining parameters
+    - cookies
+    - device
+    - block_resources
+    - wait/wait_for (will done using js instructions)
+    - wait_browser
+
+- new instructions ideas 
+    - scroll into view (selector)
