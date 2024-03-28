@@ -15,9 +15,11 @@ const pushLogData = async (timeMeasures: TimeMeasure[], data: Record<string, unk
         event: failed ? 'failed request' : 'handler end',
         time: Date.now(),
     });
+    const relativeMeasures = transformTimeMeasuresToRelative(timeMeasures);
+    log.info(`Measures for ${data.inputtedUrl}`, { ...relativeMeasures });
     await Actor.pushData({
         ...data,
-        measures: transformTimeMeasuresToRelative(timeMeasures),
+        measures: relativeMeasures,
     });
 };
 
@@ -154,9 +156,15 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
     return crawler;
 };
 
-export const adddRequest = async (request: RequestOptions, proxyOptions: ProxyConfigurationOptions, res: ServerResponse) => {
+export const adddRequest = async (request: RequestOptions<UserData>, proxyOptions: ProxyConfigurationOptions, res: ServerResponse) => {
     const key = JSON.stringify(proxyOptions);
     const crawler = crawlers.has(key) ? crawlers.get(key)! : await createAndStartCrawler(proxyOptions);
+
     addResponse(request.uniqueKey!, res);
+
+    request.userData?.timeMeasures.push({
+        event: 'before queue add',
+        time: Date.now(),
+    });
     await crawler.addRequests([request]);
 };

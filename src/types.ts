@@ -21,7 +21,7 @@ export interface ExtractRule {
 export type ExtractRules = Record<string, ExtractRule>;
 
 export interface TimeMeasure {
-    event: 'request received' | 'pre-navigation hook' | 'page loaded' | 'handler end' | 'error' | 'failed request',
+    event: 'request received' | 'pre-navigation hook' | 'page loaded' | 'handler end' | 'error' | 'failed request' | 'before queue add',
     time: number,
 }
 
