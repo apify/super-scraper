@@ -1,5 +1,6 @@
 import { Actor, ProxyConfigurationOptions, RequestQueue, log } from 'apify';
-import { PlaywrightCrawler, RequestOptions, sleep } from 'crawlee';
+import { PlaywrightCrawler, sleep } from 'crawlee';
+import type { PlaywrightCrawlingContext, RequestOptions, Request } from 'crawlee';
 import { CheerioAPI, load } from 'cheerio';
 import { MemoryStorage } from '@crawlee/memory-storage';
 import { ServerResponse } from 'http';
@@ -142,6 +143,9 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
                 instructions,
             } = request.userData as UserData;
 
+            // See comment in crawler.autoscaledPoolOptions.runTaskFunction override
+            timeMeasures.push(global.latestRequestTaskTimeMeasure as TimeMeasure);
+
             let instructionsReport: InstructionsReport = {};
             if (!request.skipNavigation && instructions.length) {
                 let executed: number = 0;
@@ -248,6 +252,31 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
             }
         },
     });
+
+    // TODO: This is just for Crawlee perf measurement, remove it once we properly understand the bottlenecks
+    // @ts-expect-error Overriding internal method
+    const origRunTaskFunction = crawler.autoscaledPoolOptions.runTaskFunction.bind(crawler);
+    // @ts-expect-error Overriding internal method
+    crawler.autoscaledPoolOptions.runTaskFunction = async function () {
+        // This code runs before we pull request from queue so we have to approximate that by having mutable global
+        // It will ofc be wrong if someone bombs requests with interval shorter than 1 sec
+        global.latestRequestTaskTimeMeasure = {
+            event: 'crawlee internal run task',
+            time: Date.now(),
+        };
+        await origRunTaskFunction();
+    };
+
+    // @ts-expect-error Overriding internal method
+    const origRunRequestHandler = crawler._runRequestHandler.bind(crawler);
+    // @ts-expect-error Overriding internal method
+    crawler._runRequestHandler = async function (context: PlaywrightCrawlingContext<UserData>) {
+        context.request.userData.timeMeasures.push({
+            event: 'crawlee internal request handler',
+            time: Date.now(),
+        });
+        await origRunRequestHandler(context);
+    };
 
     await crawler.stats.stopCapturing();
     crawler.run().then(() => log.warning(`Crawler ended`, { proxyOptions }), () => { });

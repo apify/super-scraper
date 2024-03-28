@@ -7,5 +7,5 @@ export const transformTimeMeasuresToRelative = (timeMeasures: TimeMeasure[]): Ti
             event: measure.event,
             time: measure.time - firstMeasure,
         };
-    });
+    }).sort((a, b) => a.time - b.time);
 };
