@@ -1,0 +1,12 @@
+{
+	"actorSpecification": 1,
+	"name": "standby-crawler",
+	"title": "Project Playwright Crawler Typescript",
+	"description": "Crawlee and Playwright project in typescript.",
+	"version": "0.0",
+	"meta": {
+		"templateId": "ts-crawlee-playwright-chrome"
+	},
+	"input": "./input_schema.json",
+	"dockerfile": "./Dockerfile"
+}
