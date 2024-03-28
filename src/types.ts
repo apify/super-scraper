@@ -22,7 +22,8 @@ export interface ExtractRule {
 export type ExtractRules = Record<string, ExtractRule>;
 
 export interface TimeMeasure {
-    event: 'request received' | 'pre-navigation hook' | 'page loaded' | 'handler end' | 'error' | 'failed request' | 'before queue add',
+    event: 'request received' | 'before queue add' | 'crawlee internal run task' | 'crawlee internal request handler' | 'pre-navigation hook' |
+    'page loaded' | 'handler end' | 'error' | 'failed request',
     time: number,
 }
 
