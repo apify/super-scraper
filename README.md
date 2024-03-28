@@ -120,7 +120,6 @@ console.log(resp.data);
     - cookies
     - device
     - block_resources
-    - wait/wait_for (will done using js instructions)
     - wait_browser
 
 - new instructions ideas 
