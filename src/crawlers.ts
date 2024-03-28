@@ -87,6 +87,11 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
                 enable: false,
             },
         },
+        autoscaledPoolOptions: {
+            // We want lowest possible latency, by default the autoscaled pool is sleepy for 100-200ms
+            // But this number must not be crazily low because we would spin in a hot loop wasting CPU
+            maybeRunIntervalSecs: 0.01,
+        },
         errorHandler: async ({ request }, err) => {
             const { requestDetails, timeMeasures } = request.userData as UserData;
             timeMeasures.push({
