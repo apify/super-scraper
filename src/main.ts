@@ -1,11 +1,10 @@
-import { Actor, log } from 'apify';
+import { Actor, ProxyConfigurationOptions, log } from 'apify';
 import { RequestOptions } from 'crawlee';
 import { createServer } from 'http';
 import { parse } from 'querystring';
 import { v4 as uuidv4 } from 'uuid';
 import { RequestDetails, UserData } from './types.js';
-import { addResponse } from './responses.js';
-import { crawler } from './crawler.js';
+import { adddRequest, createAndStartCrawler } from './crawler.js';
 import { validateAndTransformExtractRules } from './extract_rules_utils.js';
 
 await Actor.init();
@@ -21,15 +20,13 @@ const server = createServer(async (req, res) => {
         }
         const urlToScrape = params.url as string;
 
-        // const proxyOptions: ProxyConfigurationOptions = {};
-        // if (params.proxy_country) {
-        //     proxyOptions.countryCode = params.proxy_country as string;
-        // }
-        // if (params.proxy_group) {
-        //     proxyOptions.groups = [params.proxy_group as string];
-        // }
-
-        // const proxyConfiguration = await Actor.createProxyConfiguration(proxyOptions);
+        let proxyOptions: ProxyConfigurationOptions = {};
+        if (params.proxy_options) {
+            const options = JSON.parse(params.proxy_options as string);
+            proxyOptions = {
+                ...options,
+            };
+        }
 
         const useExtractRules = !!params.extract_rules; // using !! casts non-bool to bool
         let inputtedExtractRules;
@@ -82,8 +79,7 @@ const server = createServer(async (req, res) => {
             }
         }
 
-        addResponse(finalRequest.uniqueKey!, res);
-        await crawler.addRequests([finalRequest]);
+        await adddRequest(finalRequest, proxyOptions, res);
     } catch (e) {
         const errorMessage = {
             errorMessage: (e as Error).message,
@@ -95,7 +91,7 @@ const server = createServer(async (req, res) => {
 
 const port = Actor.isAtHome() ? process.env.ACTOR_STANDBY_PORT : 8080;
 server.listen(port, async () => {
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    crawler.run();
     log.info('Stand-by Actor is listening 🫡');
+    // have crawler with default proxy config ready
+    await createAndStartCrawler({});
 });
