@@ -61,22 +61,11 @@ const server = createServer(async (req, res) => {
             },
         };
 
-        if (params.use_headers) {
-            const reqHeaders = req.headers;
-            for (const headerKey of Object.keys(reqHeaders)) {
-                if (headerKey.toLowerCase().startsWith('apf-')) {
-                    const withoutPrefixKey = headerKey.slice(4);
-
-                    const headerValue = reqHeaders[headerKey];
-                    if (Array.isArray(headerValue)) {
-                        if (headerValue.length) {
-                            finalRequest.headers![withoutPrefixKey] = headerValue.at(-1) as string;
-                        }
-                        continue;
-                    }
-                    finalRequest.headers![withoutPrefixKey] = headerValue as string;
-                }
-            }
+        if (params.headers) {
+            const headers = JSON.parse(params.headers as string);
+            finalRequest.headers = {
+                ...headers,
+            };
         }
 
         await adddRequest(finalRequest, proxyOptions, res);
