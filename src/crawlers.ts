@@ -137,7 +137,9 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
                 await page.setViewportSize({ width, height });
 
                 if (!request.skipNavigation && blockResources) {
-                    await blockRequests();
+                    await blockRequests({
+                        extraUrlPatterns: ['*.svg'],
+                    });
                 }
             },
         ],
