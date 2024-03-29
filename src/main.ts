@@ -7,6 +7,7 @@ import { RequestDetails, UserData } from './types.js';
 import { adddRequest, createAndStartCrawler } from './crawlers.js';
 import { validateAndTransformExtractRules } from './extract_rules_utils.js';
 import { parseAndValidateInstructions } from './instructions_utils.js';
+import { sendErrorResponseById } from './responses.js';
 
 await Actor.init();
 
@@ -117,6 +118,20 @@ const server = createServer(async (req, res) => {
             finalRequest.headers!.Cookie = params.cookies as string;
         }
 
+        // TODO -> do we want some default timeout for requests? Scrapingbee has 140 000 ms
+        // also, do we want to limit the timeout? Scrapingbee's timeout must be between 1000 and 140000
+        if (params.timeout) {
+            const timeoutNumber = Number.parseInt(params.timeout as string, 10);
+            if (Number.isNaN(timeoutNumber)) {
+                throw new Error('Parameter timeout must be a number');
+            }
+            setTimeout(() => {
+                const timeoutErrorMessage = {
+                    errorMessage: `Response timed out.`,
+                };
+                sendErrorResponseById(finalRequest.uniqueKey!, JSON.stringify(timeoutErrorMessage));
+            }, timeoutNumber);
+        }
         await adddRequest(finalRequest, proxyOptions, res);
     } catch (e) {
         const errorMessage = {
