@@ -127,12 +127,15 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
             }
         },
         preNavigationHooks: [
-            async ({ request }) => {
-                const { timeMeasures } = request.userData as UserData;
+            async ({ request, blockRequests }) => {
+                const { timeMeasures, blockResources } = request.userData as UserData;
                 timeMeasures.push({
                     event: 'pre-navigation hook',
                     time: Date.now(),
                 });
+                if (!request.skipNavigation && blockResources) {
+                    await blockRequests();
+                }
             },
         ],
         async requestHandler({ request, response, parseWithCheerio, sendRequest, page }) {

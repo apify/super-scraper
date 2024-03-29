@@ -64,4 +64,5 @@ export interface UserData {
     parsedInputtedParams: Record<string, string | string[] | undefined>,
     timeMeasures: TimeMeasure[],
     instructions: Instruction[],
+    blockResources: boolean,
 }

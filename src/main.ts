@@ -99,6 +99,7 @@ const server = createServer(async (req, res) => {
                     time: requestRecieved,
                 }],
                 instructions,
+                blockResources: !(params.block_resources === 'false'),
             },
         };
 
