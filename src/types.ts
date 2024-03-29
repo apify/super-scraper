@@ -67,4 +67,5 @@ export interface UserData {
     blockResources: boolean,
     height: number,
     width: number,
+    returnPageSource: boolean,
 }

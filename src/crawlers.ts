@@ -151,6 +151,7 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
                 parsedInputtedParams,
                 timeMeasures,
                 instructions,
+                returnPageSource,
             } = request.userData as UserData;
 
             // See comment in crawler.autoscaledPoolOptions.runTaskFunction override
@@ -226,6 +227,11 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
             }
 
             if (!extractRules) {
+                // response.body() contains HTML of the page before js rendering
+                const htmlResult = returnPageSource && !request.skipNavigation
+                    ? (await response?.body())?.toString() as string
+                    : $.html();
+
                 if (verbose) {
                     const verboseResponse: VerboseResult = {
                         ...requestDetails,
@@ -233,14 +239,14 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
                         requestHeaders: request.headers || {},
                         instructionsReport,
                         resultType: 'html',
-                        result: $.html(),
+                        result: htmlResult,
                     };
                     await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
                     sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');
                     return;
                 }
-                await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: $.html() });
-                sendSuccResponseById(responseId, $.html(), 'text/html');
+                await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: htmlResult });
+                sendSuccResponseById(responseId, htmlResult, 'text/html');
                 return;
             }
 
