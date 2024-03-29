@@ -148,7 +148,7 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
                 requestDetails,
                 verbose,
                 extractRules,
-                takeScreenshot,
+                screenshotSettings,
                 inputtedUrl,
                 parsedInputtedParams,
                 timeMeasures,
@@ -223,8 +223,16 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
             const responseId = request.uniqueKey;
 
             let screenshot = null;
-            if (!request.skipNavigation && verbose && takeScreenshot) {
-                const screenshotBuffer = await page.screenshot({ fullPage: true });
+            if (!request.skipNavigation && verbose && screenshotSettings.screenshotType !== 'none') {
+                const { screenshotType, selector } = screenshotSettings;
+                let screenshotBuffer: Buffer;
+                if (screenshotType === 'full') {
+                    screenshotBuffer = await page.screenshot({ fullPage: true });
+                } else if (screenshotType === 'window') {
+                    screenshotBuffer = await page.screenshot();
+                } else {
+                    screenshotBuffer = await page.locator(selector as string).screenshot();
+                }
                 screenshot = screenshotBuffer.toString('base64');
             }
 

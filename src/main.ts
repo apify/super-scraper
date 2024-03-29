@@ -3,7 +3,7 @@ import { RequestOptions } from 'crawlee';
 import { createServer } from 'http';
 import { parse } from 'querystring';
 import { v4 as uuidv4 } from 'uuid';
-import { RequestDetails, UserData } from './types.js';
+import { RequestDetails, ScreenshotSettings, UserData } from './types.js';
 import { adddRequest, createAndStartCrawler } from './crawlers.js';
 import { validateAndTransformExtractRules } from './extract_rules_utils.js';
 import { parseAndValidateInstructions } from './instructions_utils.js';
@@ -83,6 +83,23 @@ const server = createServer(async (req, res) => {
             responseHeaders: null,
         };
 
+        const screenshotSettings: ScreenshotSettings = {
+            screenshotType: 'none',
+        };
+        if (params.screenshot === 'true') {
+            screenshotSettings.screenshotType = 'window';
+        }
+        if (params.screenshot_full_page === 'true') {
+            screenshotSettings.screenshotType = 'full';
+        }
+        if (params.screenshot_selector) {
+            if (typeof params.screenshot_selector !== 'string') {
+                throw new Error('Parameter screenshot_selector must be a string');
+            }
+            screenshotSettings.screenshotType = 'selector';
+            screenshotSettings.selector = params.screenshot_selector;
+        }
+
         const finalRequest: RequestOptions<UserData> = {
             url: urlToScrape,
             uniqueKey: uuidv4(),
@@ -90,7 +107,7 @@ const server = createServer(async (req, res) => {
             skipNavigation: !useBrowser,
             userData: {
                 verbose: params.verbose === 'true',
-                takeScreenshot: params.screenshot === 'true',
+                screenshotSettings,
                 requestDetails,
                 extractRules: useExtractRules ? validateAndTransformExtractRules(inputtedExtractRules) : null,
                 inputtedUrl: req.url as string,

@@ -55,9 +55,14 @@ export interface InstructionsReport {
     totalDuration?: number,
 }
 
+export interface ScreenshotSettings {
+    screenshotType: 'none' | 'window' | 'full' | 'selector',
+    selector?: string,
+}
+
 export interface UserData {
     verbose: boolean,
-    takeScreenshot: boolean,
+    screenshotSettings: ScreenshotSettings,
     requestDetails: RequestDetails,
     extractRules: ExtractRules | null,
     inputtedUrl: string,
