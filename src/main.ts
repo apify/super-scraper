@@ -121,6 +121,7 @@ const server = createServer(async (req, res) => {
                 width: Number.parseInt(params.window_width as string, 10) || 1920,
                 height: Number.parseInt(params.window_height as string, 10) || 1080,
                 returnPageSource: params.return_page_source === 'true',
+                transparentStatusCode: params.transparent_status_code === 'true',
             },
         };
 

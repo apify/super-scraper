@@ -73,4 +73,6 @@ export interface UserData {
     height: number,
     width: number,
     returnPageSource: boolean,
+    transparentStatusCode: boolean,
+    nonbrowserRequestStatus?: number,
 }

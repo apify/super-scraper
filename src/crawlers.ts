@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import { Actor, ProxyConfigurationOptions, RequestQueue, log } from 'apify';
 import { PlaywrightCrawler, sleep } from 'crawlee';
 import type { PlaywrightCrawlingContext, RequestOptions, AutoscaledPoolOptions } from 'crawlee';
@@ -79,7 +80,7 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
     const crawler = new PlaywrightCrawler({
         keepAlive: true,
         proxyConfiguration: proxyConfig,
-        maxRequestRetries: 4,
+        maxRequestRetries: 3,
         requestQueue: queue,
         statisticsOptions: {
             persistenceOptions: {
@@ -92,7 +93,7 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
             },
         },
         errorHandler: async ({ request }, err) => {
-            const { requestDetails, timeMeasures } = request.userData as UserData;
+            const { requestDetails, timeMeasures, transparentStatusCode } = request.userData as UserData;
             timeMeasures.push({
                 event: 'error',
                 time: Date.now(),
@@ -102,13 +103,24 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
                 attempt: request.retryCount + 1,
                 errorMessage: err.message,
             });
+
+            if (transparentStatusCode) {
+                request.noRetry = true;
+            }
         },
-        failedRequestHandler: async ({ request }, err) => {
-            const { requestDetails, verbose, inputtedUrl, parsedInputtedParams, timeMeasures } = request.userData as UserData;
+        failedRequestHandler: async ({ request, response }, err) => {
+            const { requestDetails, verbose, inputtedUrl, parsedInputtedParams, timeMeasures, transparentStatusCode, nonbrowserRequestStatus } = request.userData as UserData;
             const errorResponse = {
                 errorMessage: err.message,
             };
 
+            let statusCode = 500;
+            if (transparentStatusCode) {
+                const statusCodeFromResponse = request.skipNavigation ? nonbrowserRequestStatus : response?.status();
+                if (statusCodeFromResponse) {
+                    statusCode = statusCodeFromResponse;
+                }
+            }
             if (verbose) {
                 const verboseResponse: VerboseResult = {
                     ...requestDetails,
@@ -120,10 +132,10 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
                     result: errorResponse,
                 };
                 await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse }, true);
-                sendErrorResponseById(request.uniqueKey, JSON.stringify(verboseResponse));
+                sendErrorResponseById(request.uniqueKey, JSON.stringify(verboseResponse), statusCode);
             } else {
                 await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: errorResponse }, true);
-                sendErrorResponseById(request.uniqueKey, JSON.stringify(errorResponse));
+                sendErrorResponseById(request.uniqueKey, JSON.stringify(errorResponse), statusCode);
             }
         },
         preNavigationHooks: [
@@ -200,13 +212,17 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
             if (request.skipNavigation) {
                 const resp = await sendRequest({
                     url: request.url,
-                    throwHttpErrors: true,
+                    throwHttpErrors: false,
                     headers: request.headers,
                 });
                 timeMeasures.push({
                     event: 'page loaded',
                     time: Date.now(),
                 });
+                if (resp.statusCode >= 300 && resp.statusCode !== 404) {
+                    (request.userData as UserData).nonbrowserRequestStatus = resp.statusCode;
+                    throw new Error(`HTTPError: Response code ${resp.statusCode}`);
+                }
                 requestDetails.resolvedUrl = resp.url;
                 requestDetails.responseHeaders = resp.headers as Record<string, string | string[]>;
                 $ = load(resp.body);

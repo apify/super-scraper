@@ -14,13 +14,13 @@ export const sendSuccResponseById = (responseId: string, result: string, content
     responses.delete(responseId);
 };
 
-export const sendErrorResponseById = (responseId: string, result: string) => {
+export const sendErrorResponseById = (responseId: string, result: string, statusCode: number = 500) => {
     const res = responses.get(responseId);
     if (!res) {
         log.info(`Response for request ${responseId} not found`);
         return;
     }
-    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.writeHead(statusCode, { 'Content-Type': 'application/json' });
     res.end(result);
     responses.delete(responseId);
 };
