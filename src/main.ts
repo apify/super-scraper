@@ -3,6 +3,7 @@ import { RequestOptions } from 'crawlee';
 import { createServer } from 'http';
 import { parse } from 'querystring';
 import { v4 as uuidv4 } from 'uuid';
+import type { ParsedUrlQuery } from 'querystring';
 import { RequestDetails, ScreenshotSettings, UserData } from './types.js';
 import { adddRequest, createAndStartCrawler } from './crawlers.js';
 import { validateAndTransformExtractRules } from './extract_rules_utils.js';
@@ -10,6 +11,31 @@ import { parseAndValidateInstructions } from './instructions_utils.js';
 import { sendErrorResponseById } from './responses.js';
 
 await Actor.init();
+
+const createProxyOptions = (params: ParsedUrlQuery) => {
+    const proxyOptions: ProxyConfigurationOptions = {};
+    if (params.own_proxy) {
+        proxyOptions.proxyUrls = [params.own_proxy as string];
+        return proxyOptions;
+    }
+
+    const usePremium = params.premium_proxy === 'true';
+    if (usePremium) {
+        proxyOptions.groups = ['RESIDENTIAL'];
+    }
+
+    if (params.country_code) {
+        const countryCode = params.country_code as string;
+        if (countryCode.length !== 2) {
+            throw new Error('Parameter country_code must be a string of length 2');
+        }
+        if (!usePremium && countryCode.toUpperCase() !== 'US') {
+            throw new Error('Parameter country_code must be used with premium_proxy set to true when using non-US country');
+        }
+        proxyOptions.countryCode = countryCode;
+    }
+    return proxyOptions;
+};
 
 const server = createServer(async (req, res) => {
     const requestRecieved = Date.now();
@@ -22,13 +48,7 @@ const server = createServer(async (req, res) => {
         }
         const urlToScrape = params.url as string;
 
-        let proxyOptions: ProxyConfigurationOptions = {};
-        if (params.proxy_options) {
-            const options = JSON.parse(params.proxy_options as string);
-            proxyOptions = {
-                ...options,
-            };
-        }
+        const proxyOptions = createProxyOptions(params);
 
         const useExtractRules = !!params.extract_rules; // using !! casts non-bool to bool
         let inputtedExtractRules;
