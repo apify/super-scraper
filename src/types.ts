@@ -43,7 +43,8 @@ export interface JSInstructions {
 export interface IndividualInstructionReport {
     action: Action,
     param: ActionParam,
-    result: string,
+    success: boolean,
+    result?: string,
     duration: number,
 }
 
