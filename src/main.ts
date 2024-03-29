@@ -100,6 +100,8 @@ const server = createServer(async (req, res) => {
                 }],
                 instructions,
                 blockResources: !(params.block_resources === 'false'),
+                width: Number.parseInt(params.window_width as string, 10) || 1920,
+                height: Number.parseInt(params.window_height as string, 10) || 1080,
             },
         };
 

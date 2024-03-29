@@ -65,4 +65,6 @@ export interface UserData {
     timeMeasures: TimeMeasure[],
     instructions: Instruction[],
     blockResources: boolean,
+    height: number,
+    width: number,
 }

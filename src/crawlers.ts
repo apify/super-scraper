@@ -127,12 +127,15 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
             }
         },
         preNavigationHooks: [
-            async ({ request, blockRequests }) => {
-                const { timeMeasures, blockResources } = request.userData as UserData;
+            async ({ request, page, blockRequests }) => {
+                const { timeMeasures, blockResources, width, height } = request.userData as UserData;
                 timeMeasures.push({
                     event: 'pre-navigation hook',
                     time: Date.now(),
                 });
+
+                await page.setViewportSize({ width, height });
+
                 if (!request.skipNavigation && blockResources) {
                     await blockRequests();
                 }
