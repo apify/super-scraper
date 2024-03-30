@@ -59,7 +59,7 @@ const server = createServer(async (req, res) => {
         const doInstructions = !!params.js_instructions;
         const instructions = doInstructions ? parseAndValidateInstructions(params.js_instructions as string) : [];
 
-        const useBrowser = params.use_browser === 'true';
+        const useBrowser = !(params.use_browser === 'false');
         if (useBrowser && params.wait) {
             const parsedWait = Number.parseInt(params.wait as string, 10);
             if (Number.isNaN(parsedWait)) {

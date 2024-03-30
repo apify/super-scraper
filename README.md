@@ -36,7 +36,7 @@ curl  -X GET \
 | `verbose` | Will return verbose JSON response. Can be `true` or `false` |
 | `headers` | Headers to be used in the request |
 | `extract_rules` | Stringified JSON with custom rules how to extract data from the website. More [here](#extract-rules). |
-| `use_browser` | Specify, if you want to scrape the webpage with or without loading it in a headless browser, can be `true` or `false`, default: `false` | probably should be `true` by default |
+| `use_browser` | Specify, if you want to scrape the webpage with or without loading it in a headless browser, can be `true` or `false`, default: `false` |
 | `screenshot` | Get screenshot of the browser's current viewport in base64 in the verbose response, can be `true` or `false`, default: `false` (`use_browser` and `verbose` must be set to `true`) |
 | `screenshot_full_page` | Get screenshot of the full page in base64 in the verbose response, can be `true` or `false`, default: `false` (`use_browser` and `verbose` must be set to `true`) |
 | `screenshot_selector` | Get screenshot of the element specified by the selector in base64 in the verbose response, can be `true` or `false`, default: `false` (`use_browser` and `verbose` must be set to `true`) |
