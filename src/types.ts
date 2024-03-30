@@ -1,5 +1,4 @@
 export interface RequestDetails {
-    usedApifyProxies: boolean,
     requestErrors: { attempt: number, errorMessage: string }[],
     resolvedUrl: string | null,
     responseHeaders: Record<string, string | string[]> | null,

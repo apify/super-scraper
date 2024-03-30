@@ -97,7 +97,6 @@ const server = createServer(async (req, res) => {
         }
 
         const requestDetails: RequestDetails = {
-            usedApifyProxies: true,
             requestErrors: [],
             resolvedUrl: null,
             responseHeaders: null,
