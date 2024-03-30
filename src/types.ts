@@ -27,7 +27,7 @@ export interface TimeMeasure {
     time: number,
 }
 
-export type Action = 'wait' | 'wait_for' | 'click' | 'scroll_x' | 'scroll_y' | 'fill' | 'wait_browser';
+export type Action = 'wait' | 'wait_for' | 'click' | 'scroll_x' | 'scroll_y' | 'fill' | 'wait_browser' | 'evaluate';
 type ActionParam = number | string | string[];
 
 export interface Instruction {
@@ -54,6 +54,7 @@ export interface InstructionsReport {
     success?: number,
     failed?: number,
     totalDuration?: number,
+    evaluateResults?: string[],
 }
 
 export interface ScreenshotSettings {

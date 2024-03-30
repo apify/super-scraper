@@ -25,11 +25,11 @@ const createProxyOptions = (params: ParsedUrlQuery) => {
     }
 
     if (params.country_code) {
-        const countryCode = params.country_code as string;
+        const countryCode = (params.country_code as string).toUpperCase();
         if (countryCode.length !== 2) {
             throw new Error('Parameter country_code must be a string of length 2');
         }
-        if (!usePremium && countryCode.toUpperCase() !== 'US') {
+        if (!usePremium && countryCode !== 'US') {
             throw new Error('Parameter country_code must be used with premium_proxy set to true when using non-US country');
         }
         proxyOptions.countryCode = countryCode;
