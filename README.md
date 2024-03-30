@@ -58,7 +58,7 @@ curl  -X GET \
 ### Extract rules
 
 - mainly copied from here https://www.scrapingbee.com/documentation/data-extraction/
-- there are two types how to create an extract rule: with shortened options or with full options
+- there are two ways how to create an extract rule: with shortened options or with full options
 
 #### shortened options:
 - value for the given key serves as a `selector`
@@ -151,8 +151,8 @@ console.log(resp.data);
 ### JS Instructions
 
 - mainly copied from here: https://www.scrapingbee.com/documentation/#js_scenario
-- instructions to be evalueated after navigation in order one by one
-- set `verbose` to `true` to get a full report for the instructions, the results of any `evaluate` instructions will be added to the `evaluate_results` field
+- instructions in order to be evalueated after navigation one by one
+- set `verbose` to `true` to get a full report of the instructions, the results of any `evaluate` instructions will be added to the `evaluate_results` field
 - example for clicking a button:
 ```ts
 const instructions = {
@@ -212,7 +212,7 @@ Supported instructions:
 
 - device parameter
 - google proxies
-- their [verbonse](https://www.scrapingbee.com/documentation/#json_response) response also contains
+- their [verbose](https://www.scrapingbee.com/documentation/#json_response) response also contains:
     - content and source of iframes in the page
     - XHR / Ajax requests sent by the browser
     - nicely formatted cookies sent back by the server
