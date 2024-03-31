@@ -1,4 +1,6 @@
-import { Action, Instruction } from './types.js';
+import { Page } from 'playwright';
+import { sleep } from 'crawlee';
+import { Action, IndividualInstructionReport, Instruction, InstructionsReport } from './types.js';
 
 export const parseAndValidateInstructions = (rawInput: string): Instruction[] => {
     const input = JSON.parse(rawInput);
@@ -18,7 +20,7 @@ export const parseAndValidateInstructions = (rawInput: string): Instruction[] =>
         const action = Object.keys(instruction)[0];
         const param = instruction[action];
 
-        const possibleActions = ['wait', 'wait_for', 'click', 'scroll_x', 'scroll_y', 'fill']; // todo
+        const possibleActions = ['wait', 'wait_for', 'click', 'scroll_x', 'scroll_y', 'fill', 'evaluate']; // todo
         if (typeof action !== 'string' || !possibleActions.includes(action.toLowerCase())) {
             throw new Error(`Unsupported instruction: ${action}`);
         }
@@ -31,4 +33,99 @@ export const parseAndValidateInstructions = (rawInput: string): Instruction[] =>
     }
 
     return parsedInstructions;
+};
+
+const performInstruction = async (instruction: Instruction, page: Page): Promise<{ success: boolean, errorMessage?: string | undefined; result?: string; }> => {
+    try {
+        let result;
+        switch (instruction.action) {
+            case 'wait': {
+                await sleep(instruction.param as number);
+                break;
+            }
+            case 'click': {
+                await page.click(instruction.param as string);
+                break;
+            }
+            case 'wait_for': {
+                await page.waitForSelector(instruction.param as string);
+                break;
+            }
+            case 'fill': {
+                const params = instruction.param as string[];
+                await page.fill(params[0], params[1]);
+                break;
+            }
+            case 'scroll_x': {
+                const paramX = instruction.param as number;
+                await page.mouse.wheel(paramX, 0);
+                break;
+            }
+            case 'scroll_y': {
+                const paramY = instruction.param as number;
+                await page.mouse.wheel(0, paramY);
+                break;
+            }
+            case 'wait_browser': {
+                await page.waitForLoadState(instruction.param as 'load' | 'domcontentloaded' | 'networkidle');
+                break;
+            }
+            case 'evaluate': {
+                const evaluateResult = await page.evaluate(instruction.param as string);
+                if (['boolean', 'number', 'string'].includes(typeof evaluateResult)) {
+                    result = String(evaluateResult);
+                } else if (typeof evaluateResult === 'object') {
+                    result = JSON.stringify(evaluateResult);
+                }
+                break;
+            }
+            default: {
+                return { success: false, errorMessage: 'unknown instruction' };
+            }
+        }
+        return { success: true, result };
+    } catch (e) {
+        return { success: false, errorMessage: (e as Error).message };
+    }
+};
+
+export const performInstructionsAndGenerateReport = async (instructions: Instruction[], page: Page): Promise<InstructionsReport> => {
+    let executed: number = 0;
+    let success: number = 0;
+    let failed: number = 0;
+    const reports: IndividualInstructionReport[] = [];
+    const evaluateResults: string[] = [];
+    const start = Date.now();
+
+    for (const instruction of instructions) {
+        const instructionStart = Date.now();
+        const instructionResult = await performInstruction(instruction, page);
+        const instructionDuration = Date.now() - instructionStart;
+
+        executed += 1;
+        if (instructionResult.success) {
+            success += 1;
+            if (instruction.action === 'evaluate' && instructionResult.result) {
+                evaluateResults.push(instructionResult.result);
+            }
+        } else {
+            failed += 1;
+        }
+
+        reports.push({
+            ...instruction,
+            duration: instructionDuration,
+            success: instructionResult.success,
+            result: instructionResult.success ? instructionResult.result : instructionResult.errorMessage,
+        });
+    }
+    const totalDuration = Date.now() - start;
+    return {
+        executed,
+        success,
+        failed,
+        totalDuration,
+        instructions: reports,
+        evaluateResults,
+    };
 };

@@ -1,5 +1,4 @@
 export interface RequestDetails {
-    usedApifyProxies: boolean,
     requestErrors: { attempt: number, errorMessage: string }[],
     resolvedUrl: string | null,
     responseHeaders: Record<string, string | string[]> | null,
@@ -27,7 +26,7 @@ export interface TimeMeasure {
     time: number,
 }
 
-export type Action = 'wait' | 'wait_for' | 'click' | 'scroll_x' | 'scroll_y' | 'fill';
+export type Action = 'wait' | 'wait_for' | 'click' | 'scroll_x' | 'scroll_y' | 'fill' | 'wait_browser' | 'evaluate';
 type ActionParam = number | string | string[];
 
 export interface Instruction {
@@ -43,7 +42,8 @@ export interface JSInstructions {
 export interface IndividualInstructionReport {
     action: Action,
     param: ActionParam,
-    result: string,
+    success: boolean,
+    result?: string,
     duration: number,
 }
 
@@ -53,15 +53,27 @@ export interface InstructionsReport {
     success?: number,
     failed?: number,
     totalDuration?: number,
+    evaluateResults?: string[],
+}
+
+export interface ScreenshotSettings {
+    screenshotType: 'none' | 'window' | 'full' | 'selector',
+    selector?: string,
 }
 
 export interface UserData {
     verbose: boolean,
-    takeScreenshot: boolean,
+    screenshotSettings: ScreenshotSettings,
     requestDetails: RequestDetails,
     extractRules: ExtractRules | null,
     inputtedUrl: string,
     parsedInputtedParams: Record<string, string | string[] | undefined>,
     timeMeasures: TimeMeasure[],
     instructions: Instruction[],
+    blockResources: boolean,
+    height: number,
+    width: number,
+    returnPageSource: boolean,
+    transparentStatusCode: boolean,
+    nonbrowserRequestStatus?: number,
 }

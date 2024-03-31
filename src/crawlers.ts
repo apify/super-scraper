@@ -1,14 +1,15 @@
+/* eslint-disable max-len */
 import { Actor, ProxyConfigurationOptions, RequestQueue, log } from 'apify';
-import { PlaywrightCrawler, sleep } from 'crawlee';
+import { PlaywrightCrawler } from 'crawlee';
 import type { PlaywrightCrawlingContext, RequestOptions, AutoscaledPoolOptions } from 'crawlee';
 import { CheerioAPI, load } from 'cheerio';
 import { MemoryStorage } from '@crawlee/memory-storage';
 import { ServerResponse } from 'http';
-import { Page } from 'playwright';
-import { IndividualInstructionReport, Instruction, InstructionsReport, TimeMeasure, UserData, VerboseResult } from './types.js';
+import { InstructionsReport, TimeMeasure, UserData, VerboseResult } from './types.js';
 import { addResponse, sendErrorResponseById, sendSuccResponseById } from './responses.js';
 import { scrapeBasedOnExtractRules } from './extract_rules_utils.js';
 import { transformTimeMeasuresToRelative } from './utils.js';
+import { performInstructionsAndGenerateReport } from './instructions_utils.js';
 
 const crawlers = new Map<string, PlaywrightCrawler>();
 
@@ -25,45 +26,6 @@ const pushLogData = async (timeMeasures: TimeMeasure[], data: Record<string, unk
     });
 };
 
-const performInstruction = async (instruction: Instruction, page: Page) => {
-    try {
-        switch (instruction.action) {
-            case 'wait': {
-                await sleep(instruction.param as number);
-                return 'success';
-            }
-            case 'click': {
-                await page.click(instruction.param as string);
-                return 'success';
-            }
-            case 'wait_for': {
-                await page.waitForSelector(instruction.param as string);
-                return 'success';
-            }
-            case 'fill': {
-                const params = instruction.param as string[];
-                await page.fill(params[0], params[1]);
-                return 'success';
-            }
-            case 'scroll_x': {
-                const paramX = instruction.param as number;
-                await page.mouse.wheel(paramX, 0);
-                return 'success';
-            }
-            case 'scroll_y': {
-                const paramY = instruction.param as number;
-                await page.mouse.wheel(0, paramY);
-                return 'success';
-            }
-            default: {
-                return 'unknown instruction';
-            }
-        }
-    } catch (e) {
-        return (e as Error).message;
-    }
-};
-
 export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOptions) => {
     log.info('Creating a new crawler', { proxyOptions });
 
@@ -75,7 +37,7 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
     const crawler = new PlaywrightCrawler({
         keepAlive: true,
         proxyConfiguration: proxyConfig,
-        maxRequestRetries: 4,
+        maxRequestRetries: 3,
         requestQueue: queue,
         statisticsOptions: {
             persistenceOptions: {
@@ -93,7 +55,7 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
             maybeRunIntervalSecs: 0.01,
         },
         errorHandler: async ({ request }, err) => {
-            const { requestDetails, timeMeasures } = request.userData as UserData;
+            const { requestDetails, timeMeasures, transparentStatusCode } = request.userData as UserData;
             timeMeasures.push({
                 event: 'error',
                 time: Date.now(),
@@ -103,13 +65,24 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
                 attempt: request.retryCount + 1,
                 errorMessage: err.message,
             });
+
+            if (transparentStatusCode) {
+                request.noRetry = true;
+            }
         },
-        failedRequestHandler: async ({ request }, err) => {
-            const { requestDetails, verbose, inputtedUrl, parsedInputtedParams, timeMeasures } = request.userData as UserData;
+        failedRequestHandler: async ({ request, response }, err) => {
+            const { requestDetails, verbose, inputtedUrl, parsedInputtedParams, timeMeasures, transparentStatusCode, nonbrowserRequestStatus } = request.userData as UserData;
             const errorResponse = {
                 errorMessage: err.message,
             };
 
+            let statusCode = 500;
+            if (transparentStatusCode) {
+                const statusCodeFromResponse = request.skipNavigation ? nonbrowserRequestStatus : response?.status();
+                if (statusCodeFromResponse) {
+                    statusCode = statusCodeFromResponse;
+                }
+            }
             if (verbose) {
                 const verboseResponse: VerboseResult = {
                     ...requestDetails,
@@ -121,19 +94,27 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
                     result: errorResponse,
                 };
                 await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse }, true);
-                sendErrorResponseById(request.uniqueKey, JSON.stringify(verboseResponse));
+                sendErrorResponseById(request.uniqueKey, JSON.stringify(verboseResponse), statusCode);
             } else {
                 await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: errorResponse }, true);
-                sendErrorResponseById(request.uniqueKey, JSON.stringify(errorResponse));
+                sendErrorResponseById(request.uniqueKey, JSON.stringify(errorResponse), statusCode);
             }
         },
         preNavigationHooks: [
-            async ({ request }) => {
-                const { timeMeasures } = request.userData as UserData;
+            async ({ request, page, blockRequests }) => {
+                const { timeMeasures, blockResources, width, height } = request.userData as UserData;
                 timeMeasures.push({
                     event: 'pre-navigation hook',
                     time: Date.now(),
                 });
+
+                await page.setViewportSize({ width, height });
+
+                if (!request.skipNavigation && blockResources) {
+                    await blockRequests({
+                        extraUrlPatterns: ['*.svg'],
+                    });
+                }
             },
         ],
         async requestHandler({ request, response, parseWithCheerio, sendRequest, page }) {
@@ -141,11 +122,12 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
                 requestDetails,
                 verbose,
                 extractRules,
-                takeScreenshot,
+                screenshotSettings,
                 inputtedUrl,
                 parsedInputtedParams,
                 timeMeasures,
                 instructions,
+                returnPageSource,
             } = request.userData as UserData;
 
             // See comment in crawler.autoscaledPoolOptions.runTaskFunction override
@@ -153,52 +135,24 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
 
             let instructionsReport: InstructionsReport = {};
             if (!request.skipNavigation && instructions.length) {
-                let executed: number = 0;
-                let success: number = 0;
-                let failed: number = 0;
-                const reports: IndividualInstructionReport[] = [];
-                const start = Date.now();
-
-                for (const instruction of instructions) {
-                    const instructionStart = Date.now();
-                    const result = await performInstruction(instruction, page);
-                    const instructionDuration = Date.now() - instructionStart;
-
-                    executed += 1;
-                    const succeeded = result === 'success';
-                    if (succeeded) {
-                        success += 1;
-                    } else {
-                        failed += 1;
-                    }
-
-                    reports.push({
-                        ...instruction,
-                        duration: instructionDuration,
-                        result,
-                    });
-                }
-                const totalDuration = Date.now() - start;
-                instructionsReport = {
-                    executed,
-                    success,
-                    failed,
-                    totalDuration,
-                    instructions: reports,
-                };
+                instructionsReport = await performInstructionsAndGenerateReport(instructions, page);
             }
 
             let $: CheerioAPI;
             if (request.skipNavigation) {
                 const resp = await sendRequest({
                     url: request.url,
-                    throwHttpErrors: true,
+                    throwHttpErrors: false,
                     headers: request.headers,
                 });
                 timeMeasures.push({
                     event: 'page loaded',
                     time: Date.now(),
                 });
+                if (resp.statusCode >= 300 && resp.statusCode !== 404) {
+                    (request.userData as UserData).nonbrowserRequestStatus = resp.statusCode;
+                    throw new Error(`HTTPError: Response code ${resp.statusCode}`);
+                }
                 requestDetails.resolvedUrl = resp.url;
                 requestDetails.responseHeaders = resp.headers as Record<string, string | string[]>;
                 $ = load(resp.body);
@@ -215,12 +169,25 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
             const responseId = request.uniqueKey;
 
             let screenshot = null;
-            if (!request.skipNavigation && verbose && takeScreenshot) {
-                const screenshotBuffer = await page.screenshot({ fullPage: true });
+            if (!request.skipNavigation && verbose && screenshotSettings.screenshotType !== 'none') {
+                const { screenshotType, selector } = screenshotSettings;
+                let screenshotBuffer: Buffer;
+                if (screenshotType === 'full') {
+                    screenshotBuffer = await page.screenshot({ fullPage: true });
+                } else if (screenshotType === 'window') {
+                    screenshotBuffer = await page.screenshot();
+                } else {
+                    screenshotBuffer = await page.locator(selector as string).screenshot();
+                }
                 screenshot = screenshotBuffer.toString('base64');
             }
 
             if (!extractRules) {
+                // response.body() contains HTML of the page before js rendering
+                const htmlResult = returnPageSource && !request.skipNavigation
+                    ? (await response?.body())?.toString() as string
+                    : $.html();
+
                 if (verbose) {
                     const verboseResponse: VerboseResult = {
                         ...requestDetails,
@@ -228,14 +195,14 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
                         requestHeaders: request.headers || {},
                         instructionsReport,
                         resultType: 'html',
-                        result: $.html(),
+                        result: htmlResult,
                     };
                     await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
                     sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');
                     return;
                 }
-                await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: $.html() });
-                sendSuccResponseById(responseId, $.html(), 'text/html');
+                await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: htmlResult });
+                sendSuccResponseById(responseId, htmlResult, 'text/html');
                 return;
             }
 
