@@ -1,17 +1,22 @@
 /* eslint-disable max-len */
-import { Actor, ProxyConfigurationOptions, RequestQueue, log } from 'apify';
+import { Actor, RequestQueue, log } from 'apify';
 import { PlaywrightCrawler } from 'crawlee';
 import type { PlaywrightCrawlingContext, RequestOptions, AutoscaledPoolOptions } from 'crawlee';
 import { CheerioAPI, load } from 'cheerio';
 import { MemoryStorage } from '@crawlee/memory-storage';
 import { ServerResponse } from 'http';
-import { InstructionsReport, TimeMeasure, UserData, VerboseResult } from './types.js';
+import { InstructionsReport, TimeMeasure, UserData, VerboseResult, CrawlerOptions } from './types.js';
 import { addResponse, sendErrorResponseById, sendSuccResponseById } from './responses.js';
 import { scrapeBasedOnExtractRules } from './extract_rules_utils.js';
 import { transformTimeMeasuresToRelative } from './utils.js';
 import { performInstructionsAndGenerateReport } from './instructions_utils.js';
 
 const crawlers = new Map<string, PlaywrightCrawler>();
+
+export const DEFAULT_CRAWLER_OPTIONS: CrawlerOptions = {
+    proxyConfigurationOptions: {},
+    maybeRunIntervalSecs: 0.01,
+};
 
 const pushLogData = async (timeMeasures: TimeMeasure[], data: Record<string, unknown>, failed = false) => {
     timeMeasures.push({
@@ -26,13 +31,13 @@ const pushLogData = async (timeMeasures: TimeMeasure[], data: Record<string, unk
     });
 };
 
-export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOptions) => {
-    log.info('Creating a new crawler', { proxyOptions });
+export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEFAULT_CRAWLER_OPTIONS) => {
+    log.info('Creating a new crawler', crawlerOptions);
 
     const client = new MemoryStorage();
     const queue = await RequestQueue.open(undefined, { storageClient: client });
 
-    const proxyConfig = await Actor.createProxyConfiguration(proxyOptions);
+    const proxyConfig = await Actor.createProxyConfiguration(crawlerOptions.proxyConfigurationOptions);
 
     const crawler = new PlaywrightCrawler({
         keepAlive: true,
@@ -52,7 +57,7 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
         autoscaledPoolOptions: {
             // We want lowest possible latency, by default the autoscaled pool is sleepy for 100-200ms
             // But this number must not be crazily low because we would spin in a hot loop wasting CPU
-            maybeRunIntervalSecs: 0.01,
+            maybeRunIntervalSecs: crawlerOptions.maybeRunIntervalSecs,
         },
         errorHandler: async ({ request }, err) => {
             const { requestDetails, timeMeasures, transparentStatusCode } = request.userData as UserData;
@@ -251,15 +256,15 @@ export const createAndStartCrawler = async (proxyOptions: ProxyConfigurationOpti
     };
 
     await crawler.stats.stopCapturing();
-    crawler.run().then(() => log.warning(`Crawler ended`, { proxyOptions }), () => { });
-    crawlers.set(JSON.stringify(proxyOptions), crawler);
-    log.info('Crawler ready 🫡', { proxyOptions });
+    crawler.run().then(() => log.warning(`Crawler ended`, crawlerOptions), () => { });
+    crawlers.set(JSON.stringify(crawlerOptions), crawler);
+    log.info('Crawler ready 🫡', crawlerOptions);
     return crawler;
 };
 
-export const adddRequest = async (request: RequestOptions<UserData>, proxyOptions: ProxyConfigurationOptions, res: ServerResponse) => {
-    const key = JSON.stringify(proxyOptions);
-    const crawler = crawlers.has(key) ? crawlers.get(key)! : await createAndStartCrawler(proxyOptions);
+export const adddRequest = async (request: RequestOptions<UserData>, res: ServerResponse, crawlerOptions: CrawlerOptions) => {
+    const key = JSON.stringify(crawlerOptions);
+    const crawler = crawlers.has(key) ? crawlers.get(key)! : await createAndStartCrawler(crawlerOptions);
 
     addResponse(request.uniqueKey!, res);
 

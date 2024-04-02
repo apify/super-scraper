@@ -1,3 +1,5 @@
+import type { ProxyConfigurationOptions } from 'apify';
+
 export interface RequestDetails {
     requestErrors: { attempt: number, errorMessage: string }[],
     resolvedUrl: string | null,
@@ -76,4 +78,9 @@ export interface UserData {
     returnPageSource: boolean,
     transparentStatusCode: boolean,
     nonbrowserRequestStatus?: number,
+}
+
+export interface CrawlerOptions {
+    proxyConfigurationOptions: ProxyConfigurationOptions;
+    maybeRunIntervalSecs: number;
 }

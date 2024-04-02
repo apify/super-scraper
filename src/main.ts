@@ -4,8 +4,8 @@ import { createServer } from 'http';
 import { parse } from 'querystring';
 import { v4 as uuidv4 } from 'uuid';
 import type { ParsedUrlQuery } from 'querystring';
-import { RequestDetails, ScreenshotSettings, UserData } from './types.js';
-import { adddRequest, createAndStartCrawler } from './crawlers.js';
+import { CrawlerOptions, RequestDetails, ScreenshotSettings, UserData } from './types.js';
+import { adddRequest, createAndStartCrawler, DEFAULT_CRAWLER_OPTIONS } from './crawlers.js';
 import { validateAndTransformExtractRules } from './extract_rules_utils.js';
 import { parseAndValidateInstructions } from './instructions_utils.js';
 import { sendErrorResponseById } from './responses.js';
@@ -47,8 +47,6 @@ const server = createServer(async (req, res) => {
             throw new Error('Parameter url is either missing or empty');
         }
         const urlToScrape = params.url as string;
-
-        const proxyOptions = createProxyOptions(params);
 
         const useExtractRules = !!params.extract_rules; // using !! casts non-bool to bool
         let inputtedExtractRules;
@@ -169,7 +167,13 @@ const server = createServer(async (req, res) => {
                 sendErrorResponseById(finalRequest.uniqueKey!, JSON.stringify(timeoutErrorMessage));
             }, timeoutNumber);
         }
-        await adddRequest(finalRequest, proxyOptions, res);
+
+        // maybeRunIntervalSecs is just for perf debugging
+        const crawlerOptions: CrawlerOptions = {
+            proxyConfigurationOptions: createProxyOptions(params),
+            maybeRunIntervalSecs: params.maybeRunIntervalSecs ? Number(params.maybeRunIntervalSecs) : 0.01,
+        };
+        await adddRequest(finalRequest, res, crawlerOptions);
     } catch (e) {
         const errorMessage = {
             errorMessage: (e as Error).message,
@@ -182,6 +186,10 @@ const server = createServer(async (req, res) => {
 const port = Actor.isAtHome() ? process.env.ACTOR_STANDBY_PORT : 8080;
 server.listen(port, async () => {
     log.info('Stand-by Actor is listening 🫡');
-    // have crawler with default proxy config ready
-    await createAndStartCrawler({});
+
+    // Pre-create common crawlers because crawler init can take about 1 sec
+    await Promise.all([
+        createAndStartCrawler(DEFAULT_CRAWLER_OPTIONS),
+        createAndStartCrawler({ ...DEFAULT_CRAWLER_OPTIONS, proxyConfigurationOptions: { groups: ['RESIDENTIAL'] } }),
+    ]);
 });
