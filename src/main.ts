@@ -15,6 +15,17 @@ await Actor.init();
 
 const createProxyOptions = (params: ParsedUrlQuery) => {
     const proxyOptions: ProxyConfigurationOptions = {};
+
+    const useGoogleProxy = params.custom_google === 'true';
+    const url = new URL(params.url as string);
+    if (url.host.includes('google') && !useGoogleProxy) {
+        throw new Error('Set param custom_google to true to scrape Google urls');
+    }
+    if (useGoogleProxy) {
+        proxyOptions.groups = ['GOOGLE_SERP'];
+        return proxyOptions;
+    }
+
     if (params.own_proxy) {
         proxyOptions.proxyUrls = [params.own_proxy as string];
         return proxyOptions;

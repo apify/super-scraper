@@ -75,7 +75,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 request.noRetry = true;
             }
         },
-        failedRequestHandler: async ({ request, response }, err) => {
+        failedRequestHandler: async ({ request, response, page }, err) => {
             const { requestDetails, verbose, inputtedUrl, parsedInputtedParams, timeMeasures, transparentStatusCode, nonbrowserRequestStatus } = request.userData as UserData;
             const errorResponse = {
                 errorMessage: err.message,
@@ -97,7 +97,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                     instructionsReport: {},
                     resultType: 'error',
                     result: errorResponse,
-                    cookies: [],
+                    cookies: await page.context().cookies(request.url) || [],
                 };
                 await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse }, true);
                 sendErrorResponseById(request.uniqueKey, JSON.stringify(verboseResponse), statusCode);
