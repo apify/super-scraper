@@ -11,6 +11,7 @@
 		"apify": "^3.1.10",
 		"cheerio": "^1.0.0-rc.12",
 		"crawlee": "^3.5.4",
+		"header-generator": "^2.1.50",
 		"playwright": "*",
 		"uuid": "^9.0.1"
 	},

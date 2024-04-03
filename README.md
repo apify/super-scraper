@@ -210,7 +210,6 @@ Supported instructions:
 
 ## todo remaining features
 
-- device parameter
 - google proxies
 - their [verbose](https://www.scrapingbee.com/documentation/#json_response) response also contains:
     - content and source of iframes in the page

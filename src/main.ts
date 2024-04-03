@@ -4,6 +4,7 @@ import { createServer } from 'http';
 import { parse } from 'querystring';
 import { v4 as uuidv4 } from 'uuid';
 import type { ParsedUrlQuery } from 'querystring';
+import { HeaderGenerator } from 'header-generator';
 import { CrawlerOptions, RequestDetails, ScreenshotSettings, UserData } from './types.js';
 import { adddRequest, createAndStartCrawler, DEFAULT_CRAWLER_OPTIONS } from './crawlers.js';
 import { validateAndTransformExtractRules } from './extract_rules_utils.js';
@@ -53,6 +54,23 @@ const server = createServer(async (req, res) => {
         if (useExtractRules) {
             inputtedExtractRules = JSON.parse(params.extract_rules as string);
         }
+
+        let selectedDevice: 'desktop' | 'mobile' = 'desktop';
+        if (params.device) {
+            const device = params.device as string;
+            if (device === 'mobile') {
+                selectedDevice = 'mobile';
+            }
+
+            if (device !== 'desktop' && device !== 'mobile') {
+                throw new Error('Param device can be either desktop or mobile');
+            }
+        }
+
+        const headerGenerator = new HeaderGenerator({
+            devices: [selectedDevice],
+        });
+        const generatedHeaders = headerGenerator.getHeaders();
 
         const doInstructions = !!params.js_instructions;
         const instructions = doInstructions ? parseAndValidateInstructions(params.js_instructions as string) : [];
@@ -120,7 +138,9 @@ const server = createServer(async (req, res) => {
         const finalRequest: RequestOptions<UserData> = {
             url: urlToScrape,
             uniqueKey: uuidv4(),
-            headers: {},
+            headers: {
+                ...generatedHeaders,
+            },
             skipNavigation: !useBrowser,
             userData: {
                 verbose: params.verbose === 'true',
@@ -144,7 +164,9 @@ const server = createServer(async (req, res) => {
 
         if (params.headers) {
             const headers = JSON.parse(params.headers as string);
+            const currentHeaders = finalRequest.headers;
             finalRequest.headers = {
+                ...currentHeaders,
                 ...headers,
             };
         }
@@ -185,7 +207,7 @@ const server = createServer(async (req, res) => {
 
 const port = Actor.isAtHome() ? process.env.ACTOR_STANDBY_PORT : 8080;
 server.listen(port, async () => {
-    log.info('Stand-by Actor is listening 🫡');
+    log.info('Stand-by Actor is listening');
 
     // Pre-create common crawlers because crawler init can take about 1 sec
     await Promise.all([
