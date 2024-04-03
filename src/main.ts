@@ -162,13 +162,39 @@ const server = createServer(async (req, res) => {
             },
         };
 
-        if (params.headers) {
-            const headers = JSON.parse(params.headers as string);
-            const currentHeaders = finalRequest.headers;
-            finalRequest.headers = {
-                ...currentHeaders,
-                ...headers,
-            };
+        if (params.forward_headers === 'true' || params.forward_headers_pure === 'true') {
+            const reqHeaders = req.headers;
+            const headersToForward: Record<string, string> = {};
+            for (const headerKey of Object.keys(reqHeaders)) {
+                if (headerKey.startsWith('Spb-')) {
+                    const withoutPrefixKey = headerKey.slice(4);
+
+                    // scraping bee ingores these
+                    const skippedHeaders = ['cookie', 'set-cookie', 'host'];
+                    if (skippedHeaders.includes(withoutPrefixKey.toLowerCase())) {
+                        continue;
+                    }
+
+                    // header values other than 'set-cookie' should be string (not string[]), but there's a check just in case
+                    const headerValue = reqHeaders[headerKey];
+                    if (Array.isArray(headerValue)) {
+                        continue;
+                    }
+                    headersToForward[withoutPrefixKey] = headerValue as string;
+                }
+            }
+
+            if (params.forward_headers === 'true') {
+                const currentHeaders = finalRequest.headers;
+                finalRequest.headers = {
+                    ...currentHeaders,
+                    ...headersToForward,
+                };
+            } else {
+                finalRequest.headers = {
+                    ...headersToForward,
+                };
+            }
         }
 
         if (params.cookies) {
