@@ -20,7 +20,7 @@ const createProxyOptions = (params: ParsedUrlQuery) => {
         return proxyOptions;
     }
 
-    const usePremium = params.premium_proxy === 'true';
+    const usePremium = params.premium_proxy === 'true' || params.stealth_proxy === 'true';
     if (usePremium) {
         proxyOptions.groups = ['RESIDENTIAL'];
     }
@@ -31,7 +31,7 @@ const createProxyOptions = (params: ParsedUrlQuery) => {
             throw new Error('Parameter country_code must be a string of length 2');
         }
         if (!usePremium && countryCode !== 'US') {
-            throw new Error('Parameter country_code must be used with premium_proxy set to true when using non-US country');
+            throw new Error('Parameter country_code must be used with premium_proxy or stealth_proxy set to true when using non-US country');
         }
         proxyOptions.countryCode = countryCode;
     }
