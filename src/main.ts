@@ -166,12 +166,12 @@ const server = createServer(async (req, res) => {
             const reqHeaders = req.headers;
             const headersToForward: Record<string, string> = {};
             for (const headerKey of Object.keys(reqHeaders)) {
-                if (headerKey.startsWith('Spb-')) {
+                if (headerKey.startsWith('spb-')) {
                     const withoutPrefixKey = headerKey.slice(4);
 
                     // scraping bee ingores these
                     const skippedHeaders = ['cookie', 'set-cookie', 'host'];
-                    if (skippedHeaders.includes(withoutPrefixKey.toLowerCase())) {
+                    if (skippedHeaders.includes(withoutPrefixKey)) {
                         continue;
                     }
 
