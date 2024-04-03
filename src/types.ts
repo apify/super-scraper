@@ -1,4 +1,5 @@
 import type { ProxyConfigurationOptions } from 'apify';
+import { Cookie } from 'crawlee';
 
 export interface RequestDetails {
     requestErrors: { attempt: number, errorMessage: string }[],
@@ -12,6 +13,7 @@ export type VerboseResult = RequestDetails & {
     instructionsReport: InstructionsReport,
     resultType: 'html' | 'json' | 'error',
     result: string | Record<string, unknown>,
+    cookies: Cookie[],
 }
 
 export interface ExtractRule {

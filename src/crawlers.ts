@@ -97,6 +97,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                     instructionsReport: {},
                     resultType: 'error',
                     result: errorResponse,
+                    cookies: [],
                 };
                 await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse }, true);
                 sendErrorResponseById(request.uniqueKey, JSON.stringify(verboseResponse), statusCode);
@@ -173,6 +174,8 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
 
             const responseId = request.uniqueKey;
 
+            const cookies = await page.context().cookies(request.url) || [];
+
             let screenshot = null;
             if (!request.skipNavigation && verbose && screenshotSettings.screenshotType !== 'none') {
                 const { screenshotType, selector } = screenshotSettings;
@@ -196,6 +199,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 if (verbose) {
                     const verboseResponse: VerboseResult = {
                         ...requestDetails,
+                        cookies,
                         screenshot,
                         requestHeaders: request.headers || {},
                         instructionsReport,
@@ -216,6 +220,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 const verboseResponse: VerboseResult = {
                     ...requestDetails,
                     screenshot,
+                    cookies,
                     requestHeaders: request.headers || {},
                     instructionsReport,
                     resultType: 'json',
