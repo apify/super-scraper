@@ -5,7 +5,7 @@ import type { PlaywrightCrawlingContext, RequestOptions, AutoscaledPoolOptions }
 import { CheerioAPI, load } from 'cheerio';
 import { MemoryStorage } from '@crawlee/memory-storage';
 import { ServerResponse } from 'http';
-import { InstructionsReport, TimeMeasure, UserData, VerboseResult, CrawlerOptions, XHRRequest } from './types.js';
+import { InstructionsReport, TimeMeasure, UserData, VerboseResult, CrawlerOptions, IFrameData, XHRRequestData } from './types.js';
 import { addResponse, sendErrorResponseById, sendSuccResponseById } from './responses.js';
 import { scrapeBasedOnExtractRules } from './extract_rules_utils.js';
 import { transformTimeMeasuresToRelative } from './utils.js';
@@ -99,6 +99,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                     result: errorResponse,
                     cookies: await page.context().cookies(request.url) || [],
                     xhr: [],
+                    iframes: [],
                 };
                 await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse }, true);
                 sendErrorResponseById(request.uniqueKey, JSON.stringify(verboseResponse), statusCode);
@@ -125,7 +126,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
             },
         ],
         async requestHandler({ request, response, parseWithCheerio, sendRequest, page }) {
-            const xhr: XHRRequest[] = [];
+            const xhr: XHRRequestData[] = [];
             page.on('response', async (resp) => {
                 const req = resp.request();
                 if (req.resourceType() !== 'xhr') {
@@ -194,6 +195,25 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
 
             const cookies = await page.context().cookies(request.url) || [];
 
+            const iframes: IFrameData[] = [];
+            const frames = page.frames();
+            for (const frame of frames) {
+                let frameEl;
+                try {
+                    frameEl = await frame.frameElement();
+                } catch (e) {
+                    continue;
+                }
+
+                const src = await frameEl.getAttribute('src') || '';
+                const content = await frame.content();
+
+                iframes.push({
+                    src,
+                    content,
+                });
+            }
+
             let screenshot = null;
             if (!request.skipNavigation && verbose && screenshotSettings.screenshotType !== 'none') {
                 const { screenshotType, selector } = screenshotSettings;
@@ -224,6 +244,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                         resultType: 'html',
                         result: htmlResult,
                         xhr,
+                        iframes,
                     };
                     await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
                     sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');
@@ -245,6 +266,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                     resultType: 'json',
                     result: resultFromExtractRules,
                     xhr,
+                    iframes,
                 };
                 await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
                 sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');

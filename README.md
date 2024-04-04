@@ -8,12 +8,12 @@ Example usage using axios:
 const resp = await axios.get('https://yh8jx5mCjfv69espW.apify.actor/', {
     params: {
         url: 'https://apify.com/store',
-        wait_for: 'ActorStoreItem-title',
+        wait_for: '.ActorStoreItem-title',
         verbose: true,
         screenshot: true,
     },
     headers: {
-        Authorization: 'Bearer YOUR_TOKEN',
+        Authorization: 'Bearer YOUR_APIFY_TOKEN',
     },
 });
 
@@ -24,8 +24,8 @@ Example using curl:
 
 ```
 curl  -X GET \
-  'https://yh8jx5mCjfv69espW.apify.actor/?url=https://apify.com/store&wait_for=ActorStoreItem-title&screenshot=true&verbose=true' \
-  --header 'Authorization: Bearer YOUR_TOKEN'
+  'https://yh8jx5mCjfv69espW.apify.actor/?url=https://apify.com/store&wait_for=.ActorStoreItem-title&screenshot=true&verbose=true' \
+  --header 'Authorization: Bearer YOUR_APIFY_TOKEN'
 ```
 
 ## Supported params
@@ -119,7 +119,7 @@ const resp = await axios.get('https://yh8jx5mCjfv69espW.apify.actor/', {
         // verbose: true,
     },
     headers: {
-        Authorization: 'Bearer YOUR_TOKEN',
+        Authorization: 'Bearer YOUR_APIFY_TOKEN',
     },
 });
 
@@ -210,8 +210,5 @@ Supported instructions:
 
 ## todo remaining features
 
-- block_ads
-- session_id
 - their [verbose](https://www.scrapingbee.com/documentation/#json_response) response also contains:
-    - content and source of iframes in the page
     - Metada / Schema data but not sure what it is

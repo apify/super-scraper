@@ -7,13 +7,18 @@ export interface RequestDetails {
     responseHeaders: Record<string, string | string[]> | null,
 }
 
-export interface XHRRequest {
+export interface XHRRequestData {
     url: string,
     statusCode: number,
     method: string,
     requestHeaders: Record<string, string>,
     headers: Record<string, string>,
     body: string,
+}
+
+export interface IFrameData {
+    src: string,
+    content: string,
 }
 
 export type VerboseResult = RequestDetails & {
@@ -23,7 +28,8 @@ export type VerboseResult = RequestDetails & {
     resultType: 'html' | 'json' | 'error',
     result: string | Record<string, unknown>,
     cookies: Cookie[],
-    xhr: XHRRequest[],
+    xhr: XHRRequestData[],
+    iframes: IFrameData[],
 }
 
 export interface ExtractRule {
