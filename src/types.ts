@@ -35,7 +35,8 @@ export type VerboseResult = RequestDetails & {
 export interface ExtractRule {
     selector: string,
     type: 'list' | 'item',
-    result: string | Record<string, ExtractRule>, // string can be either 'text' or start with '@' to indicate we want to get some attribute of the element(s)
+    output: string | Record<string, ExtractRule>
+    clean: boolean,
 }
 
 export type ExtractRules = Record<string, ExtractRule>;
