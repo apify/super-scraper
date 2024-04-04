@@ -5,7 +5,7 @@ import type { PlaywrightCrawlingContext, RequestOptions, AutoscaledPoolOptions }
 import { CheerioAPI, load } from 'cheerio';
 import { MemoryStorage } from '@crawlee/memory-storage';
 import { ServerResponse } from 'http';
-import { InstructionsReport, TimeMeasure, UserData, VerboseResult, CrawlerOptions } from './types.js';
+import { InstructionsReport, TimeMeasure, UserData, VerboseResult, CrawlerOptions, XHRRequest } from './types.js';
 import { addResponse, sendErrorResponseById, sendSuccResponseById } from './responses.js';
 import { scrapeBasedOnExtractRules } from './extract_rules_utils.js';
 import { transformTimeMeasuresToRelative } from './utils.js';
@@ -98,6 +98,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                     resultType: 'error',
                     result: errorResponse,
                     cookies: await page.context().cookies(request.url) || [],
+                    xhr: [],
                 };
                 await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse }, true);
                 sendErrorResponseById(request.uniqueKey, JSON.stringify(verboseResponse), statusCode);
@@ -124,6 +125,23 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
             },
         ],
         async requestHandler({ request, response, parseWithCheerio, sendRequest, page }) {
+            const xhr: XHRRequest[] = [];
+            page.on('response', async (resp) => {
+                const req = resp.request();
+                if (req.resourceType() !== 'xhr') {
+                    return;
+                }
+
+                xhr.push({
+                    url: req.url(),
+                    statusCode: resp.status(),
+                    method: req.method(),
+                    requestHeaders: req.headers(),
+                    headers: resp.headers(),
+                    body: (await resp.body()).toString(),
+                });
+            });
+
             const {
                 requestDetails,
                 verbose,
@@ -205,6 +223,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                         instructionsReport,
                         resultType: 'html',
                         result: htmlResult,
+                        xhr,
                     };
                     await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
                     sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');
@@ -225,6 +244,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                     instructionsReport,
                     resultType: 'json',
                     result: resultFromExtractRules,
+                    xhr,
                 };
                 await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
                 sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');

@@ -210,9 +210,8 @@ Supported instructions:
 
 ## todo remaining features
 
-- google proxies
+- block_ads
+- session_id
 - their [verbose](https://www.scrapingbee.com/documentation/#json_response) response also contains:
     - content and source of iframes in the page
-    - XHR / Ajax requests sent by the browser
-    - nicely formatted cookies sent back by the server
     - Metada / Schema data but not sure what it is
