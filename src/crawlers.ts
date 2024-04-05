@@ -125,22 +125,26 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
             },
         ],
         async requestHandler({ request, response, parseWithCheerio, sendRequest, page }) {
-            const xhr: XHRRequestData[] = [];
-            page.on('response', async (resp) => {
-                const req = resp.request();
-                if (req.resourceType() !== 'xhr') {
-                    return;
-                }
+            const renderJs = !request.skipNavigation;
 
-                xhr.push({
-                    url: req.url(),
-                    statusCode: resp.status(),
-                    method: req.method(),
-                    requestHeaders: req.headers(),
-                    headers: resp.headers(),
-                    body: (await resp.body()).toString(),
+            const xhr: XHRRequestData[] = [];
+            if (renderJs) {
+                page.on('response', async (resp) => {
+                    const req = resp.request();
+                    if (req.resourceType() !== 'xhr') {
+                        return;
+                    }
+
+                    xhr.push({
+                        url: req.url(),
+                        statusCode: resp.status(),
+                        method: req.method(),
+                        requestHeaders: req.headers(),
+                        headers: resp.headers(),
+                        body: (await resp.body()).toString(),
+                    });
                 });
-            });
+            }
 
             const {
                 requestDetails,
@@ -156,8 +160,6 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
 
             // See comment in crawler.autoscaledPoolOptions.runTaskFunction override
             timeMeasures.push((global as unknown as { latestRequestTaskTimeMeasure: TimeMeasure }).latestRequestTaskTimeMeasure);
-
-            const renderJs = !request.skipNavigation;
 
             const jsScenarioReportFull: FullJsScenarioReport = {};
             if (renderJs && jsScenario.instructions.length) {
@@ -202,22 +204,24 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
             const cookies = await page.context().cookies(request.url) || [];
 
             const iframes: IFrameData[] = [];
-            const frames = page.frames();
-            for (const frame of frames) {
-                let frameEl;
-                try {
-                    frameEl = await frame.frameElement();
-                } catch (e) {
-                    continue;
+            if (renderJs && jsonResponse) {
+                const frames = page.frames();
+                for (const frame of frames) {
+                    let frameEl;
+                    try {
+                        frameEl = await frame.frameElement();
+                    } catch (e) {
+                        continue;
+                    }
+
+                    const src = await frameEl.getAttribute('src') || '';
+                    const content = await frame.content();
+
+                    iframes.push({
+                        src,
+                        content,
+                    });
                 }
-
-                const src = await frameEl.getAttribute('src') || '';
-                const content = await frame.content();
-
-                iframes.push({
-                    src,
-                    content,
-                });
             }
 
             let screenshot = null;
