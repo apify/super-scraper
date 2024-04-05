@@ -5,7 +5,7 @@ import type { PlaywrightCrawlingContext, RequestOptions, AutoscaledPoolOptions }
 import { CheerioAPI, load } from 'cheerio';
 import { MemoryStorage } from '@crawlee/memory-storage';
 import { ServerResponse } from 'http';
-import { InstructionsReport, TimeMeasure, UserData, VerboseResult, CrawlerOptions, IFrameData, XHRRequestData } from './types.js';
+import { TimeMeasure, UserData, VerboseResult, CrawlerOptions, IFrameData, XHRRequestData, FullJsScenarioReport } from './types.js';
 import { addResponse, sendErrorResponseById, sendSuccResponseById } from './responses.js';
 import { scrapeBasedOnExtractRules } from './extract_rules_utils.js';
 import { transformTimeMeasuresToRelative } from './utils.js';
@@ -81,25 +81,24 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 errorMessage: err.message,
             };
 
+            const responseStatusCode = request.skipNavigation ? nonbrowserRequestStatus! : response!.status();
             let statusCode = 500;
             if (transparentStatusCode) {
-                const statusCodeFromResponse = request.skipNavigation ? nonbrowserRequestStatus : response?.status();
-                if (statusCodeFromResponse) {
-                    statusCode = statusCodeFromResponse;
-                }
+                statusCode = responseStatusCode;
             }
             if (jsonResponse) {
                 const verboseResponse: VerboseResult = {
-                    ...requestDetails,
-                    screenshot: null,
-                    requestHeaders: request.headers || {},
-                    resolvedUrl: null,
-                    instructionsReport: {},
-                    resultType: 'error',
-                    result: errorResponse,
+                    body: errorResponse,
                     cookies: await page.context().cookies(request.url) || [],
-                    xhr: [],
+                    evaluateResults: [],
+                    jsScenarioReport: {},
+                    headers: requestDetails.responseHeaders || {},
+                    type: 'json',
                     iframes: [],
+                    xhr: [],
+                    initialStatusCode: responseStatusCode,
+                    resolvedUrl: '',
+                    screenshot: null,
                 };
                 await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse }, true);
                 sendErrorResponseById(request.uniqueKey, JSON.stringify(verboseResponse), statusCode);
@@ -160,11 +159,14 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
 
             const renderJs = !request.skipNavigation;
 
-            let instructionsReport: InstructionsReport = {};
+            const jsScenarioReportFull: FullJsScenarioReport = {};
             if (renderJs && jsScenario.instructions.length) {
-                instructionsReport = await performInstructionsAndGenerateReport(jsScenario, page);
+                const { jsScenarioReport, evaluateResults } = await performInstructionsAndGenerateReport(jsScenario, page);
+                jsScenarioReportFull.jsScenarioReport = jsScenarioReport;
+                jsScenarioReportFull.evaluateResults = evaluateResults;
             }
 
+            let statusCode: number;
             let $: CheerioAPI;
             if (!renderJs) {
                 const resp = await sendRequest({
@@ -176,6 +178,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                     event: 'page loaded',
                     time: Date.now(),
                 });
+                statusCode = resp.statusCode;
                 if (resp.statusCode >= 300 && resp.statusCode !== 404) {
                     (request.userData as UserData).nonbrowserRequestStatus = resp.statusCode;
                     throw new Error(`HTTPError: Response code ${resp.statusCode}`);
@@ -191,6 +194,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 requestDetails.resolvedUrl = response?.url() || '';
                 requestDetails.responseHeaders = response?.headers() || {};
                 $ = await parseWithCheerio() as CheerioAPI;
+                statusCode = response!.status();
             }
 
             const responseId = request.uniqueKey;
@@ -244,15 +248,17 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
 
                 if (jsonResponse) {
                     const verboseResponse: VerboseResult = {
-                        ...requestDetails,
+                        body: htmlResult,
                         cookies,
-                        screenshot,
-                        requestHeaders: request.headers || {},
-                        instructionsReport,
-                        resultType: 'html',
-                        result: htmlResult,
-                        xhr,
+                        evaluateResults: jsScenarioReportFull.evaluateResults || [],
+                        jsScenarioReport: jsScenarioReportFull.jsScenarioReport || {},
+                        headers: requestDetails.responseHeaders,
+                        type: 'html',
                         iframes,
+                        xhr,
+                        initialStatusCode: statusCode,
+                        resolvedUrl: requestDetails.resolvedUrl,
+                        screenshot,
                     };
                     await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
                     sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');
@@ -266,15 +272,17 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
             const resultFromExtractRules = scrapeBasedOnExtractRules($ as CheerioAPI, extractRules);
             if (jsonResponse) {
                 const verboseResponse: VerboseResult = {
-                    ...requestDetails,
-                    screenshot,
+                    body: resultFromExtractRules,
                     cookies,
-                    requestHeaders: request.headers || {},
-                    instructionsReport,
-                    resultType: 'json',
-                    result: resultFromExtractRules,
-                    xhr,
+                    evaluateResults: jsScenarioReportFull.evaluateResults || [],
+                    jsScenarioReport: jsScenarioReportFull.jsScenarioReport || {},
+                    headers: requestDetails.responseHeaders,
+                    type: 'json',
                     iframes,
+                    xhr,
+                    initialStatusCode: statusCode,
+                    resolvedUrl: requestDetails.resolvedUrl,
+                    screenshot,
                 };
                 await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
                 sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');

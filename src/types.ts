@@ -21,15 +21,19 @@ export interface IFrameData {
     content: string,
 }
 
-export type VerboseResult = RequestDetails & {
-    screenshot: string | null,
-    requestHeaders: Record<string, string>,
-    instructionsReport: InstructionsReport,
-    resultType: 'html' | 'json' | 'error',
-    result: string | Record<string, unknown>,
+export interface VerboseResult {
+    body: string | Record<string, unknown>,
     cookies: Cookie[],
-    xhr: XHRRequestData[],
+    evaluateResults: string[],
+    jsScenarioReport: JsScenarioReport | Record<string, never>,
+    headers: Record<string, string | string[]>,
+    type: 'html' | 'json',
+    screenshot: string | null,
     iframes: IFrameData[],
+    xhr: XHRRequestData[],
+    initialStatusCode: number,
+    resolvedUrl: string,
+    metadata?: string,
 }
 
 export interface ExtractRule {
@@ -61,20 +65,23 @@ export interface JsScenario {
 }
 
 export interface IndividualInstructionReport {
-    action: Action,
-    param: ActionParam,
+    task: Action,
+    params: ActionParam,
     success: boolean,
-    result?: string,
     duration: number,
 }
 
-export interface InstructionsReport {
-    instructions?: IndividualInstructionReport[],
-    executed?: number,
-    success?: number,
-    failed?: number,
-    totalDuration?: number,
+export interface JsScenarioReport {
+    tasks: IndividualInstructionReport[],
+    taskExecuted: number,
+    taskSuccess: number,
+    taskFailure: number,
+    totalDuration: number,
+}
+
+export interface FullJsScenarioReport {
     evaluateResults?: string[],
+    jsScenarioReport?: JsScenarioReport,
 }
 
 export interface ScreenshotSettings {

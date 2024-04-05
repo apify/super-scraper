@@ -1,6 +1,6 @@
 import { Page } from 'playwright';
 import { sleep } from 'crawlee';
-import { Action, IndividualInstructionReport, Instruction, InstructionsReport, JsScenario } from './types.js';
+import { Action, FullJsScenarioReport, IndividualInstructionReport, Instruction, JsScenario } from './types.js';
 
 export const parseAndValidateInstructions = (rawInput: string): JsScenario => {
     const input = JSON.parse(rawInput);
@@ -110,7 +110,7 @@ const performInstruction = async (instruction: Instruction, page: Page): Promise
     }
 };
 
-export const performInstructionsAndGenerateReport = async (jsScenario: JsScenario, page: Page): Promise<InstructionsReport> => {
+export const performInstructionsAndGenerateReport = async (jsScenario: JsScenario, page: Page): Promise<FullJsScenarioReport> => {
     const { strict, instructions } = jsScenario;
 
     let executed: number = 0;
@@ -136,10 +136,10 @@ export const performInstructionsAndGenerateReport = async (jsScenario: JsScenari
         }
 
         reports.push({
-            ...instruction,
+            task: instruction.action,
+            params: instruction.param,
             duration: instructionDuration,
             success: instructionResult.success,
-            result: instructionResult.success ? instructionResult.result : instructionResult.errorMessage,
         });
 
         if (strict && !instructionResult.success) {
@@ -148,11 +148,13 @@ export const performInstructionsAndGenerateReport = async (jsScenario: JsScenari
     }
     const totalDuration = Date.now() - start;
     return {
-        executed,
-        success,
-        failed,
-        totalDuration,
-        instructions: reports,
+        jsScenarioReport: {
+            totalDuration,
+            taskExecuted: executed,
+            taskSuccess: success,
+            taskFailure: failed,
+            tasks: reports,
+        },
         evaluateResults,
     };
 };
