@@ -81,9 +81,9 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 errorMessage: err.message,
             };
 
-            const responseStatusCode = request.skipNavigation ? nonbrowserRequestStatus! : response!.status();
+            const responseStatusCode = request.skipNavigation ? nonbrowserRequestStatus! : (response?.status() || null);
             let statusCode = 500;
-            if (transparentStatusCode) {
+            if (transparentStatusCode && responseStatusCode) {
                 statusCode = responseStatusCode;
             }
             if (jsonResponse) {
@@ -168,7 +168,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 jsScenarioReportFull.evaluateResults = evaluateResults;
             }
 
-            let statusCode: number;
+            let statusCode: number | null;
             let $: CheerioAPI;
             if (!renderJs) {
                 const resp = await sendRequest({
@@ -196,7 +196,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 requestDetails.resolvedUrl = response?.url() || '';
                 requestDetails.responseHeaders = response?.headers() || {};
                 $ = await parseWithCheerio() as CheerioAPI;
-                statusCode = response!.status();
+                statusCode = response?.status() || null;
             }
 
             const responseId = request.uniqueKey;
