@@ -13,6 +13,10 @@ import { sendErrorResponseById } from './responses.js';
 
 await Actor.init();
 
+if (Actor.isAtHome() && process.env.META_ORIGIN !== 'STANDBY') {
+    await Actor.fail('The actor must start by calling its endpoint.');
+}
+
 const createProxyOptions = (params: ParsedUrlQuery) => {
     const proxyOptions: ProxyConfigurationOptions = {};
 
