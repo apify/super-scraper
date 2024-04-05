@@ -3,7 +3,7 @@ import { ServerResponse } from 'http';
 
 const responses = new Map<string, ServerResponse>();
 
-export const sendSuccResponseById = (responseId: string, result: string, contentType: string) => {
+export const sendSuccResponseById = (responseId: string, result: unknown, contentType: string) => {
     const res = responses.get(responseId);
     if (!res) {
         log.info(`Response for request ${responseId} not found`);

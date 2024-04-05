@@ -5,7 +5,7 @@ import type { PlaywrightCrawlingContext, RequestOptions, AutoscaledPoolOptions }
 import { CheerioAPI, load } from 'cheerio';
 import { MemoryStorage } from '@crawlee/memory-storage';
 import { ServerResponse } from 'http';
-import { InstructionsReport, TimeMeasure, UserData, VerboseResult, CrawlerOptions } from './types.js';
+import { TimeMeasure, UserData, VerboseResult, CrawlerOptions, IFrameData, XHRRequestData, FullJsScenarioReport } from './types.js';
 import { addResponse, sendErrorResponseById, sendSuccResponseById } from './responses.js';
 import { scrapeBasedOnExtractRules } from './extract_rules_utils.js';
 import { transformTimeMeasuresToRelative } from './utils.js';
@@ -75,28 +75,30 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 request.noRetry = true;
             }
         },
-        failedRequestHandler: async ({ request, response }, err) => {
-            const { requestDetails, verbose, inputtedUrl, parsedInputtedParams, timeMeasures, transparentStatusCode, nonbrowserRequestStatus } = request.userData as UserData;
+        failedRequestHandler: async ({ request, response, page }, err) => {
+            const { requestDetails, jsonResponse, inputtedUrl, parsedInputtedParams, timeMeasures, transparentStatusCode, nonbrowserRequestStatus } = request.userData as UserData;
             const errorResponse = {
                 errorMessage: err.message,
             };
 
+            const responseStatusCode = request.skipNavigation ? nonbrowserRequestStatus! : response!.status();
             let statusCode = 500;
             if (transparentStatusCode) {
-                const statusCodeFromResponse = request.skipNavigation ? nonbrowserRequestStatus : response?.status();
-                if (statusCodeFromResponse) {
-                    statusCode = statusCodeFromResponse;
-                }
+                statusCode = responseStatusCode;
             }
-            if (verbose) {
+            if (jsonResponse) {
                 const verboseResponse: VerboseResult = {
-                    ...requestDetails,
+                    body: errorResponse,
+                    cookies: await page.context().cookies(request.url) || [],
+                    evaluateResults: [],
+                    jsScenarioReport: {},
+                    headers: requestDetails.responseHeaders || {},
+                    type: 'json',
+                    iframes: [],
+                    xhr: [],
+                    initialStatusCode: responseStatusCode,
+                    resolvedUrl: '',
                     screenshot: null,
-                    requestHeaders: request.headers || {},
-                    resolvedUrl: null,
-                    instructionsReport: {},
-                    resultType: 'error',
-                    result: errorResponse,
                 };
                 await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse }, true);
                 sendErrorResponseById(request.uniqueKey, JSON.stringify(verboseResponse), statusCode);
@@ -123,28 +125,52 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
             },
         ],
         async requestHandler({ request, response, parseWithCheerio, sendRequest, page }) {
+            const renderJs = !request.skipNavigation;
+
+            const xhr: XHRRequestData[] = [];
+            if (renderJs) {
+                page.on('response', async (resp) => {
+                    const req = resp.request();
+                    if (req.resourceType() !== 'xhr') {
+                        return;
+                    }
+
+                    xhr.push({
+                        url: req.url(),
+                        statusCode: resp.status(),
+                        method: req.method(),
+                        requestHeaders: req.headers(),
+                        headers: resp.headers(),
+                        body: (await resp.body()).toString(),
+                    });
+                });
+            }
+
             const {
                 requestDetails,
-                verbose,
+                jsonResponse,
                 extractRules,
                 screenshotSettings,
                 inputtedUrl,
                 parsedInputtedParams,
                 timeMeasures,
-                instructions,
+                jsScenario,
                 returnPageSource,
             } = request.userData as UserData;
 
             // See comment in crawler.autoscaledPoolOptions.runTaskFunction override
             timeMeasures.push((global as unknown as { latestRequestTaskTimeMeasure: TimeMeasure }).latestRequestTaskTimeMeasure);
 
-            let instructionsReport: InstructionsReport = {};
-            if (!request.skipNavigation && instructions.length) {
-                instructionsReport = await performInstructionsAndGenerateReport(instructions, page);
+            const jsScenarioReportFull: FullJsScenarioReport = {};
+            if (renderJs && jsScenario.instructions.length) {
+                const { jsScenarioReport, evaluateResults } = await performInstructionsAndGenerateReport(jsScenario, page);
+                jsScenarioReportFull.jsScenarioReport = jsScenarioReport;
+                jsScenarioReportFull.evaluateResults = evaluateResults;
             }
 
+            let statusCode: number;
             let $: CheerioAPI;
-            if (request.skipNavigation) {
+            if (!renderJs) {
                 const resp = await sendRequest({
                     url: request.url,
                     throwHttpErrors: false,
@@ -154,6 +180,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                     event: 'page loaded',
                     time: Date.now(),
                 });
+                statusCode = resp.statusCode;
                 if (resp.statusCode >= 300 && resp.statusCode !== 404) {
                     (request.userData as UserData).nonbrowserRequestStatus = resp.statusCode;
                     throw new Error(`HTTPError: Response code ${resp.statusCode}`);
@@ -169,12 +196,36 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 requestDetails.resolvedUrl = response?.url() || '';
                 requestDetails.responseHeaders = response?.headers() || {};
                 $ = await parseWithCheerio() as CheerioAPI;
+                statusCode = response!.status();
             }
 
             const responseId = request.uniqueKey;
 
+            const cookies = await page.context().cookies(request.url) || [];
+
+            const iframes: IFrameData[] = [];
+            if (renderJs && jsonResponse) {
+                const frames = page.frames();
+                for (const frame of frames) {
+                    let frameEl;
+                    try {
+                        frameEl = await frame.frameElement();
+                    } catch (e) {
+                        continue;
+                    }
+
+                    const src = await frameEl.getAttribute('src') || '';
+                    const content = await frame.content();
+
+                    iframes.push({
+                        src,
+                        content,
+                    });
+                }
+            }
+
             let screenshot = null;
-            if (!request.skipNavigation && verbose && screenshotSettings.screenshotType !== 'none') {
+            if (renderJs && screenshotSettings.screenshotType !== 'none') {
                 const { screenshotType, selector } = screenshotSettings;
                 let screenshotBuffer: Buffer;
                 if (screenshotType === 'full') {
@@ -185,22 +236,33 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                     screenshotBuffer = await page.locator(selector as string).screenshot();
                 }
                 screenshot = screenshotBuffer.toString('base64');
+
+                if (!jsonResponse) {
+                    await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: screenshot });
+                    sendSuccResponseById(responseId, screenshotBuffer, 'image/png');
+                    return;
+                }
             }
 
             if (!extractRules) {
                 // response.body() contains HTML of the page before js rendering
-                const htmlResult = returnPageSource && !request.skipNavigation
+                const htmlResult = returnPageSource && renderJs
                     ? (await response?.body())?.toString() as string
                     : $.html();
 
-                if (verbose) {
+                if (jsonResponse) {
                     const verboseResponse: VerboseResult = {
-                        ...requestDetails,
+                        body: htmlResult,
+                        cookies,
+                        evaluateResults: jsScenarioReportFull.evaluateResults || [],
+                        jsScenarioReport: jsScenarioReportFull.jsScenarioReport || {},
+                        headers: requestDetails.responseHeaders,
+                        type: 'html',
+                        iframes,
+                        xhr,
+                        initialStatusCode: statusCode,
+                        resolvedUrl: requestDetails.resolvedUrl,
                         screenshot,
-                        requestHeaders: request.headers || {},
-                        instructionsReport,
-                        resultType: 'html',
-                        result: htmlResult,
                     };
                     await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
                     sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');
@@ -212,14 +274,19 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
             }
 
             const resultFromExtractRules = scrapeBasedOnExtractRules($ as CheerioAPI, extractRules);
-            if (verbose) {
+            if (jsonResponse) {
                 const verboseResponse: VerboseResult = {
-                    ...requestDetails,
+                    body: resultFromExtractRules,
+                    cookies,
+                    evaluateResults: jsScenarioReportFull.evaluateResults || [],
+                    jsScenarioReport: jsScenarioReportFull.jsScenarioReport || {},
+                    headers: requestDetails.responseHeaders,
+                    type: 'json',
+                    iframes,
+                    xhr,
+                    initialStatusCode: statusCode,
+                    resolvedUrl: requestDetails.resolvedUrl,
                     screenshot,
-                    requestHeaders: request.headers || {},
-                    instructionsReport,
-                    resultType: 'json',
-                    result: resultFromExtractRules,
                 };
                 await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
                 sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');

@@ -4,7 +4,8 @@ import { createServer } from 'http';
 import { parse } from 'querystring';
 import { v4 as uuidv4 } from 'uuid';
 import type { ParsedUrlQuery } from 'querystring';
-import { CrawlerOptions, RequestDetails, ScreenshotSettings, UserData } from './types.js';
+import { HeaderGenerator } from 'header-generator';
+import { CrawlerOptions, JsScenario, RequestDetails, ScreenshotSettings, UserData } from './types.js';
 import { adddRequest, createAndStartCrawler, DEFAULT_CRAWLER_OPTIONS } from './crawlers.js';
 import { validateAndTransformExtractRules } from './extract_rules_utils.js';
 import { parseAndValidateInstructions } from './instructions_utils.js';
@@ -12,14 +13,29 @@ import { sendErrorResponseById } from './responses.js';
 
 await Actor.init();
 
+if (Actor.isAtHome() && process.env.META_ORIGIN !== 'STANDBY') {
+    await Actor.fail('The actor must start by calling its endpoint.');
+}
+
 const createProxyOptions = (params: ParsedUrlQuery) => {
     const proxyOptions: ProxyConfigurationOptions = {};
+
+    const useGoogleProxy = params.custom_google === 'true';
+    const url = new URL(params.url as string);
+    if (url.host.includes('google') && !useGoogleProxy) {
+        throw new Error('Set param custom_google to true to scrape Google urls');
+    }
+    if (useGoogleProxy) {
+        proxyOptions.groups = ['GOOGLE_SERP'];
+        return proxyOptions;
+    }
+
     if (params.own_proxy) {
         proxyOptions.proxyUrls = [params.own_proxy as string];
         return proxyOptions;
     }
 
-    const usePremium = params.premium_proxy === 'true';
+    const usePremium = params.premium_proxy === 'true' || params.stealth_proxy === 'true';
     if (usePremium) {
         proxyOptions.groups = ['RESIDENTIAL'];
     }
@@ -30,7 +46,7 @@ const createProxyOptions = (params: ParsedUrlQuery) => {
             throw new Error('Parameter country_code must be a string of length 2');
         }
         if (!usePremium && countryCode !== 'US') {
-            throw new Error('Parameter country_code must be used with premium_proxy set to true when using non-US country');
+            throw new Error('Parameter country_code must be used with premium_proxy or stealth_proxy set to true when using non-US country');
         }
         proxyOptions.countryCode = countryCode;
     }
@@ -54,40 +70,58 @@ const server = createServer(async (req, res) => {
             inputtedExtractRules = JSON.parse(params.extract_rules as string);
         }
 
-        const doInstructions = !!params.js_instructions;
-        const instructions = doInstructions ? parseAndValidateInstructions(params.js_instructions as string) : [];
+        let selectedDevice: 'desktop' | 'mobile' = 'desktop';
+        if (params.device) {
+            const device = params.device as string;
+            if (device === 'mobile') {
+                selectedDevice = 'mobile';
+            }
 
-        const useBrowser = !(params.use_browser === 'false');
-        if (useBrowser && params.wait) {
+            if (device !== 'desktop' && device !== 'mobile') {
+                throw new Error('Param device can be either desktop or mobile');
+            }
+        }
+
+        const headerGenerator = new HeaderGenerator({
+            devices: [selectedDevice],
+        });
+        const generatedHeaders = headerGenerator.getHeaders();
+
+        const doScenario = !!params.js_scenario;
+        const jsScenario: JsScenario = doScenario ? parseAndValidateInstructions(params.js_scenario as string) : { instructions: [], strict: false };
+
+        const renderJs = !(params.render_js === 'false');
+
+        if (renderJs && params.wait) {
             const parsedWait = Number.parseInt(params.wait as string, 10);
             if (Number.isNaN(parsedWait)) {
                 throw new Error('Number value expected for wait parameter');
             } else {
-                instructions.unshift({
+                jsScenario.instructions.unshift({
                     action: 'wait',
                     param: Math.min(parsedWait, 35000),
                 });
             }
         }
 
-        if (useBrowser && params.wait_for) {
+        if (renderJs && params.wait_for) {
             const waitForSelector = params.wait_for;
             if (typeof waitForSelector !== 'string' || !waitForSelector.length) {
                 throw new Error('Non-empty selector expected for wait_for parameter');
             } else {
-                instructions.unshift({
+                jsScenario.instructions.unshift({
                     action: 'wait_for',
                     param: waitForSelector,
                 });
             }
         }
 
-        if (useBrowser && params.wait_browser) {
+        if (renderJs && params.wait_browser) {
             const waitForBrowserState = params.wait_browser as string;
             if (!['load', 'domcontentloaded', 'networkidle'].includes(waitForBrowserState)) {
                 throw new Error('Unsupported value for wait_browser parameter');
             } else {
-                instructions.unshift({
+                jsScenario.instructions.unshift({
                     action: 'wait_browser',
                     param: waitForBrowserState,
                 });
@@ -120,10 +154,12 @@ const server = createServer(async (req, res) => {
         const finalRequest: RequestOptions<UserData> = {
             url: urlToScrape,
             uniqueKey: uuidv4(),
-            headers: {},
-            skipNavigation: !useBrowser,
+            headers: {
+                ...generatedHeaders,
+            },
+            skipNavigation: !renderJs,
             userData: {
-                verbose: params.verbose === 'true',
+                jsonResponse: params.json_response === 'true',
                 screenshotSettings,
                 requestDetails,
                 extractRules: useExtractRules ? validateAndTransformExtractRules(inputtedExtractRules) : null,
@@ -133,7 +169,7 @@ const server = createServer(async (req, res) => {
                     event: 'request received',
                     time: requestRecieved,
                 }],
-                instructions,
+                jsScenario,
                 blockResources: !(params.block_resources === 'false'),
                 width: Number.parseInt(params.window_width as string, 10) || 1920,
                 height: Number.parseInt(params.window_height as string, 10) || 1080,
@@ -142,11 +178,39 @@ const server = createServer(async (req, res) => {
             },
         };
 
-        if (params.headers) {
-            const headers = JSON.parse(params.headers as string);
-            finalRequest.headers = {
-                ...headers,
-            };
+        if (params.forward_headers === 'true' || params.forward_headers_pure === 'true') {
+            const reqHeaders = req.headers;
+            const headersToForward: Record<string, string> = {};
+            for (const headerKey of Object.keys(reqHeaders)) {
+                if (headerKey.startsWith('spb-')) {
+                    const withoutPrefixKey = headerKey.slice(4);
+
+                    // scraping bee ingores these
+                    const skippedHeaders = ['cookie', 'set-cookie', 'host'];
+                    if (skippedHeaders.includes(withoutPrefixKey)) {
+                        continue;
+                    }
+
+                    // header values other than 'set-cookie' should be string (not string[]), but there's a check just in case
+                    const headerValue = reqHeaders[headerKey];
+                    if (Array.isArray(headerValue)) {
+                        continue;
+                    }
+                    headersToForward[withoutPrefixKey] = headerValue as string;
+                }
+            }
+
+            if (params.forward_headers === 'true') {
+                const currentHeaders = finalRequest.headers;
+                finalRequest.headers = {
+                    ...currentHeaders,
+                    ...headersToForward,
+                };
+            } else {
+                finalRequest.headers = {
+                    ...headersToForward,
+                };
+            }
         }
 
         if (params.cookies) {
@@ -185,7 +249,7 @@ const server = createServer(async (req, res) => {
 
 const port = Actor.isAtHome() ? process.env.ACTOR_STANDBY_PORT : 8080;
 server.listen(port, async () => {
-    log.info('Stand-by Actor is listening 🫡');
+    log.info('Stand-by Actor is listening');
 
     // Pre-create common crawlers because crawler init can take about 1 sec
     await Promise.all([
