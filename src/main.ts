@@ -13,7 +13,7 @@ import { sendErrorResponseById } from './responses.js';
 
 await Actor.init();
 
-if (Actor.isAtHome() && process.env.META_ORIGIN !== 'STANDBY') {
+if (Actor.isAtHome() && Actor.getEnv().metaOrigin !== 'STANDBY') {
     await Actor.fail('The actor must start by calling its endpoint.');
 }
 
