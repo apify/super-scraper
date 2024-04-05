@@ -125,10 +125,25 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
             },
         ],
         async requestHandler({ request, response, parseWithCheerio, sendRequest, page }) {
+            const {
+                requestDetails,
+                jsonResponse,
+                extractRules,
+                screenshotSettings,
+                inputtedUrl,
+                parsedInputtedParams,
+                timeMeasures,
+                jsScenario,
+                returnPageSource,
+            } = request.userData as UserData;
+
+            // See comment in crawler.autoscaledPoolOptions.runTaskFunction override
+            timeMeasures.push((global as unknown as { latestRequestTaskTimeMeasure: TimeMeasure }).latestRequestTaskTimeMeasure);
+
             const renderJs = !request.skipNavigation;
 
             const xhr: XHRRequestData[] = [];
-            if (renderJs) {
+            if (renderJs && jsonResponse) {
                 page.on('response', async (resp) => {
                     const req = resp.request();
                     if (req.resourceType() !== 'xhr') {
@@ -145,21 +160,6 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                     });
                 });
             }
-
-            const {
-                requestDetails,
-                jsonResponse,
-                extractRules,
-                screenshotSettings,
-                inputtedUrl,
-                parsedInputtedParams,
-                timeMeasures,
-                jsScenario,
-                returnPageSource,
-            } = request.userData as UserData;
-
-            // See comment in crawler.autoscaledPoolOptions.runTaskFunction override
-            timeMeasures.push((global as unknown as { latestRequestTaskTimeMeasure: TimeMeasure }).latestRequestTaskTimeMeasure);
 
             const jsScenarioReportFull: FullJsScenarioReport = {};
             if (renderJs && jsScenario.instructions.length) {
