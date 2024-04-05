@@ -5,7 +5,7 @@ import { parse } from 'querystring';
 import { v4 as uuidv4 } from 'uuid';
 import type { ParsedUrlQuery } from 'querystring';
 import { HeaderGenerator } from 'header-generator';
-import { CrawlerOptions, RequestDetails, ScreenshotSettings, UserData } from './types.js';
+import { CrawlerOptions, JsScenario, RequestDetails, ScreenshotSettings, UserData } from './types.js';
 import { adddRequest, createAndStartCrawler, DEFAULT_CRAWLER_OPTIONS } from './crawlers.js';
 import { validateAndTransformExtractRules } from './extract_rules_utils.js';
 import { parseAndValidateInstructions } from './instructions_utils.js';
@@ -84,7 +84,7 @@ const server = createServer(async (req, res) => {
         const generatedHeaders = headerGenerator.getHeaders();
 
         const doScenario = !!params.js_scenario;
-        const instructions = doScenario ? parseAndValidateInstructions(params.js_scenario as string) : [];
+        const jsScenario: JsScenario = doScenario ? parseAndValidateInstructions(params.js_scenario as string) : { instructions: [], strict: false };
 
         const renderJs = !(params.render_js === 'false');
 
@@ -93,7 +93,7 @@ const server = createServer(async (req, res) => {
             if (Number.isNaN(parsedWait)) {
                 throw new Error('Number value expected for wait parameter');
             } else {
-                instructions.unshift({
+                jsScenario.instructions.unshift({
                     action: 'wait',
                     param: Math.min(parsedWait, 35000),
                 });
@@ -105,7 +105,7 @@ const server = createServer(async (req, res) => {
             if (typeof waitForSelector !== 'string' || !waitForSelector.length) {
                 throw new Error('Non-empty selector expected for wait_for parameter');
             } else {
-                instructions.unshift({
+                jsScenario.instructions.unshift({
                     action: 'wait_for',
                     param: waitForSelector,
                 });
@@ -117,7 +117,7 @@ const server = createServer(async (req, res) => {
             if (!['load', 'domcontentloaded', 'networkidle'].includes(waitForBrowserState)) {
                 throw new Error('Unsupported value for wait_browser parameter');
             } else {
-                instructions.unshift({
+                jsScenario.instructions.unshift({
                     action: 'wait_browser',
                     param: waitForBrowserState,
                 });
@@ -165,7 +165,7 @@ const server = createServer(async (req, res) => {
                     event: 'request received',
                     time: requestRecieved,
                 }],
-                instructions,
+                jsScenario,
                 blockResources: !(params.block_resources === 'false'),
                 width: Number.parseInt(params.window_width as string, 10) || 1920,
                 height: Number.parseInt(params.window_height as string, 10) || 1080,

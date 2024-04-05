@@ -151,7 +151,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 inputtedUrl,
                 parsedInputtedParams,
                 timeMeasures,
-                instructions,
+                jsScenario,
                 returnPageSource,
             } = request.userData as UserData;
 
@@ -161,8 +161,8 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
             const renderJs = !request.skipNavigation;
 
             let instructionsReport: InstructionsReport = {};
-            if (renderJs && instructions.length) {
-                instructionsReport = await performInstructionsAndGenerateReport(instructions, page);
+            if (renderJs && jsScenario.instructions.length) {
+                instructionsReport = await performInstructionsAndGenerateReport(jsScenario, page);
             }
 
             let $: CheerioAPI;

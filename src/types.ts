@@ -55,9 +55,9 @@ export interface Instruction {
     param: ActionParam,
 }
 
-export interface JSInstructions {
+export interface JsScenario {
     instructions: Instruction[],
-    // config - maybe
+    strict: boolean,
 }
 
 export interface IndividualInstructionReport {
@@ -90,7 +90,7 @@ export interface UserData {
     inputtedUrl: string,
     parsedInputtedParams: Record<string, string | string[] | undefined>,
     timeMeasures: TimeMeasure[],
-    instructions: Instruction[],
+    jsScenario: JsScenario,
     blockResources: boolean,
     height: number,
     width: number,
