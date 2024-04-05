@@ -215,7 +215,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
             }
 
             let screenshot = null;
-            if (!request.skipNavigation && verbose && screenshotSettings.screenshotType !== 'none') {
+            if (!request.skipNavigation && screenshotSettings.screenshotType !== 'none') {
                 const { screenshotType, selector } = screenshotSettings;
                 let screenshotBuffer: Buffer;
                 if (screenshotType === 'full') {
@@ -226,6 +226,12 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                     screenshotBuffer = await page.locator(selector as string).screenshot();
                 }
                 screenshot = screenshotBuffer.toString('base64');
+
+                if (!verbose) {
+                    await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: screenshot });
+                    sendSuccResponseById(responseId, screenshotBuffer, 'image/png');
+                    return;
+                }
             }
 
             if (!extractRules) {
