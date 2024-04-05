@@ -83,11 +83,12 @@ const server = createServer(async (req, res) => {
         });
         const generatedHeaders = headerGenerator.getHeaders();
 
-        const doInstructions = !!params.js_instructions;
-        const instructions = doInstructions ? parseAndValidateInstructions(params.js_instructions as string) : [];
+        const doScenario = !!params.js_scenario;
+        const instructions = doScenario ? parseAndValidateInstructions(params.js_scenario as string) : [];
 
-        const useBrowser = !(params.use_browser === 'false');
-        if (useBrowser && params.wait) {
+        const renderJs = !(params.render_js === 'false');
+
+        if (renderJs && params.wait) {
             const parsedWait = Number.parseInt(params.wait as string, 10);
             if (Number.isNaN(parsedWait)) {
                 throw new Error('Number value expected for wait parameter');
@@ -99,7 +100,7 @@ const server = createServer(async (req, res) => {
             }
         }
 
-        if (useBrowser && params.wait_for) {
+        if (renderJs && params.wait_for) {
             const waitForSelector = params.wait_for;
             if (typeof waitForSelector !== 'string' || !waitForSelector.length) {
                 throw new Error('Non-empty selector expected for wait_for parameter');
@@ -111,7 +112,7 @@ const server = createServer(async (req, res) => {
             }
         }
 
-        if (useBrowser && params.wait_browser) {
+        if (renderJs && params.wait_browser) {
             const waitForBrowserState = params.wait_browser as string;
             if (!['load', 'domcontentloaded', 'networkidle'].includes(waitForBrowserState)) {
                 throw new Error('Unsupported value for wait_browser parameter');
@@ -152,9 +153,9 @@ const server = createServer(async (req, res) => {
             headers: {
                 ...generatedHeaders,
             },
-            skipNavigation: !useBrowser,
+            skipNavigation: !renderJs,
             userData: {
-                verbose: params.verbose === 'true',
+                jsonResponse: params.json_response === 'true',
                 screenshotSettings,
                 requestDetails,
                 extractRules: useExtractRules ? validateAndTransformExtractRules(inputtedExtractRules) : null,

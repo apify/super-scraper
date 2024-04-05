@@ -76,7 +76,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
             }
         },
         failedRequestHandler: async ({ request, response, page }, err) => {
-            const { requestDetails, verbose, inputtedUrl, parsedInputtedParams, timeMeasures, transparentStatusCode, nonbrowserRequestStatus } = request.userData as UserData;
+            const { requestDetails, jsonResponse, inputtedUrl, parsedInputtedParams, timeMeasures, transparentStatusCode, nonbrowserRequestStatus } = request.userData as UserData;
             const errorResponse = {
                 errorMessage: err.message,
             };
@@ -88,7 +88,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                     statusCode = statusCodeFromResponse;
                 }
             }
-            if (verbose) {
+            if (jsonResponse) {
                 const verboseResponse: VerboseResult = {
                     ...requestDetails,
                     screenshot: null,
@@ -145,7 +145,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
 
             const {
                 requestDetails,
-                verbose,
+                jsonResponse,
                 extractRules,
                 screenshotSettings,
                 inputtedUrl,
@@ -158,13 +158,15 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
             // See comment in crawler.autoscaledPoolOptions.runTaskFunction override
             timeMeasures.push((global as unknown as { latestRequestTaskTimeMeasure: TimeMeasure }).latestRequestTaskTimeMeasure);
 
+            const renderJs = !request.skipNavigation;
+
             let instructionsReport: InstructionsReport = {};
-            if (!request.skipNavigation && instructions.length) {
+            if (renderJs && instructions.length) {
                 instructionsReport = await performInstructionsAndGenerateReport(instructions, page);
             }
 
             let $: CheerioAPI;
-            if (request.skipNavigation) {
+            if (!renderJs) {
                 const resp = await sendRequest({
                     url: request.url,
                     throwHttpErrors: false,
@@ -215,7 +217,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
             }
 
             let screenshot = null;
-            if (!request.skipNavigation && screenshotSettings.screenshotType !== 'none') {
+            if (renderJs && screenshotSettings.screenshotType !== 'none') {
                 const { screenshotType, selector } = screenshotSettings;
                 let screenshotBuffer: Buffer;
                 if (screenshotType === 'full') {
@@ -227,7 +229,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 }
                 screenshot = screenshotBuffer.toString('base64');
 
-                if (!verbose) {
+                if (!jsonResponse) {
                     await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: screenshot });
                     sendSuccResponseById(responseId, screenshotBuffer, 'image/png');
                     return;
@@ -236,11 +238,11 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
 
             if (!extractRules) {
                 // response.body() contains HTML of the page before js rendering
-                const htmlResult = returnPageSource && !request.skipNavigation
+                const htmlResult = returnPageSource && renderJs
                     ? (await response?.body())?.toString() as string
                     : $.html();
 
-                if (verbose) {
+                if (jsonResponse) {
                     const verboseResponse: VerboseResult = {
                         ...requestDetails,
                         cookies,
@@ -262,7 +264,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
             }
 
             const resultFromExtractRules = scrapeBasedOnExtractRules($ as CheerioAPI, extractRules);
-            if (verbose) {
+            if (jsonResponse) {
                 const verboseResponse: VerboseResult = {
                     ...requestDetails,
                     screenshot,

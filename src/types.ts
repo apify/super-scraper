@@ -83,7 +83,7 @@ export interface ScreenshotSettings {
 }
 
 export interface UserData {
-    verbose: boolean,
+    jsonResponse: boolean,
     screenshotSettings: ScreenshotSettings,
     requestDetails: RequestDetails,
     extractRules: ExtractRules | null,
