@@ -31,7 +31,7 @@ export interface VerboseResult {
     screenshot: string | null,
     iframes: IFrameData[],
     xhr: XHRRequestData[],
-    initialStatusCode: number,
+    initialStatusCode: number | null,
     resolvedUrl: string,
     metadata?: string,
 }

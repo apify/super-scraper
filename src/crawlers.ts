@@ -81,9 +81,9 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 errorMessage: err.message,
             };
 
-            const responseStatusCode = request.skipNavigation ? nonbrowserRequestStatus! : response!.status();
+            const responseStatusCode = request.skipNavigation ? nonbrowserRequestStatus! : (response?.status() || null);
             let statusCode = 500;
-            if (transparentStatusCode) {
+            if (transparentStatusCode && responseStatusCode) {
                 statusCode = responseStatusCode;
             }
             if (jsonResponse) {
@@ -125,10 +125,25 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
             },
         ],
         async requestHandler({ request, response, parseWithCheerio, sendRequest, page }) {
+            const {
+                requestDetails,
+                jsonResponse,
+                extractRules,
+                screenshotSettings,
+                inputtedUrl,
+                parsedInputtedParams,
+                timeMeasures,
+                jsScenario,
+                returnPageSource,
+            } = request.userData as UserData;
+
+            // See comment in crawler.autoscaledPoolOptions.runTaskFunction override
+            timeMeasures.push((global as unknown as { latestRequestTaskTimeMeasure: TimeMeasure }).latestRequestTaskTimeMeasure);
+
             const renderJs = !request.skipNavigation;
 
             const xhr: XHRRequestData[] = [];
-            if (renderJs) {
+            if (renderJs && jsonResponse) {
                 page.on('response', async (resp) => {
                     const req = resp.request();
                     if (req.resourceType() !== 'xhr') {
@@ -146,21 +161,6 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 });
             }
 
-            const {
-                requestDetails,
-                jsonResponse,
-                extractRules,
-                screenshotSettings,
-                inputtedUrl,
-                parsedInputtedParams,
-                timeMeasures,
-                jsScenario,
-                returnPageSource,
-            } = request.userData as UserData;
-
-            // See comment in crawler.autoscaledPoolOptions.runTaskFunction override
-            timeMeasures.push((global as unknown as { latestRequestTaskTimeMeasure: TimeMeasure }).latestRequestTaskTimeMeasure);
-
             const jsScenarioReportFull: FullJsScenarioReport = {};
             if (renderJs && jsScenario.instructions.length) {
                 const { jsScenarioReport, evaluateResults } = await performInstructionsAndGenerateReport(jsScenario, page);
@@ -168,7 +168,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 jsScenarioReportFull.evaluateResults = evaluateResults;
             }
 
-            let statusCode: number;
+            let statusCode: number | null;
             let $: CheerioAPI;
             if (!renderJs) {
                 const resp = await sendRequest({
@@ -196,7 +196,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 requestDetails.resolvedUrl = response?.url() || '';
                 requestDetails.responseHeaders = response?.headers() || {};
                 $ = await parseWithCheerio() as CheerioAPI;
-                statusCode = response!.status();
+                statusCode = response?.status() || null;
             }
 
             const responseId = request.uniqueKey;
