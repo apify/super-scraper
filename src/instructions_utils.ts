@@ -123,7 +123,7 @@ export const performInstructionsAndGenerateReport = async (jsScenario: JsScenari
     for (const instruction of instructions) {
         const instructionStart = Date.now();
         const instructionResult = await performInstruction(instruction, page);
-        const instructionDuration = Date.now() - instructionStart;
+        const instructionDuration = (Date.now() - instructionStart) / 1000;
 
         executed += 1;
         if (instructionResult.success) {
@@ -146,7 +146,7 @@ export const performInstructionsAndGenerateReport = async (jsScenario: JsScenari
             break;
         }
     }
-    const totalDuration = Date.now() - start;
+    const totalDuration = (Date.now() - start) / 1000;
     return {
         jsScenarioReport: {
             totalDuration,
