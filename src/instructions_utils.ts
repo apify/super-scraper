@@ -6,7 +6,7 @@ export const parseAndValidateInstructions = (rawInput: string): JsScenario => {
     const input = JSON.parse(rawInput);
 
     let strictMode = true;
-    if (input.strict) {
+    if (input.strict !== undefined) {
         if (typeof input.strict !== 'boolean') {
             throw new Error('Parameter strict in js_scenario can be only true or false');
         }
