@@ -1,6 +1,12 @@
 # Standby Crawler
 
-Actor url: https://yh8jx5mCjfv69espW.apify.actor/
+The Standby Crawler serves as a seamless and direct replacement for [Scrapingbee's](https://www.scrapingbee.com/documentation/) API on the Apify platform.
+
+As this is a Standby Actor, you can't start it in a traditional way via the console. Instead, you interact with it by sending HTTP requests to its designated Standby URL. The Actor keeps running continuously, resulting in scraping results taking just a few seconds.
+
+The first request following some period of inactivity might take longer, as the Actor needs to start up before it can respond.
+
+Actor Standby url: https://yh8jx5mCjfv69espW.apify.actor/
 
 Example usage using axios:
 
@@ -9,7 +15,7 @@ const resp = await axios.get('https://yh8jx5mCjfv69espW.apify.actor/', {
     params: {
         url: 'https://apify.com/store',
         wait_for: '.ActorStoreItem-title',
-        verbose: true,
+        json_response: true,
         screenshot: true,
     },
     headers: {
@@ -22,11 +28,13 @@ console.log(resp.data);
 
 Example using curl:
 
-```
-curl  -X GET \
-  'https://yh8jx5mCjfv69espW.apify.actor/?url=https://apify.com/store&wait_for=.ActorStoreItem-title&screenshot=true&verbose=true' \
+```shell
+curl -X GET \
+  'https://yh8jx5mCjfv69espW.apify.actor/?url=https://apify.com/store&wait_for=.ActorStoreItem-title&screenshot=true&json_response=true' \
   --header 'Authorization: Bearer YOUR_APIFY_TOKEN'
 ```
+
+Currently, there are two parameters that are not supported: `block_ads` and `session_id`.
 
 ## Supported params
 
@@ -160,7 +168,7 @@ console.log(resp.data);
 
 ### JS Scenario
 
-Specify instructions in order to be executed one by one after opening the page. Set `json_response` to `true` to get a full report of the performed instructions, the results of `evaluate` instructions will be added to the `evaluate_results` field.
+Specify instructions in order to be executed one by one after opening the page. Set `json_response` to `true` to get a full report of the executed instructions, the results of `evaluate` instructions will be added to the `evaluate_results` field.
 
 - example for clicking a button:
 ```ts
