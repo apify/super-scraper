@@ -65,7 +65,7 @@ const performInstruction = async (instruction: Instruction, page: Page): Promise
                 break;
             }
             case 'click': {
-                await page.click(instruction.param as string);
+                await page.click(instruction.param as string, { timeout: 5000 });
                 break;
             }
             case 'wait_for': {
