@@ -30,30 +30,34 @@ curl  -X GET \
 
 ## Supported params
 
-| parameter | description | dev notes |
-| -------- | ------- | ----- |
-| `url` | URL to be scraped, required parameter |
-| `verbose` | Will return verbose JSON response. Can be `true` or `false` |
-| `headers` | Headers to be used in the request |
-| `extract_rules` | Stringified JSON with custom rules how to extract data from the website. More [here](#extract-rules). |
-| `use_browser` | Specify, if you want to scrape the webpage with or without loading it in a headless browser, can be `true` or `false`, default: `false` |
-| `screenshot` | Get screenshot of the browser's current viewport in base64 in the verbose response, can be `true` or `false`, default: `false` (`use_browser` and `verbose` must be set to `true`) |
-| `screenshot_full_page` | Get screenshot of the full page in base64 in the verbose response, can be `true` or `false`, default: `false` (`use_browser` and `verbose` must be set to `true`) |
-| `screenshot_selector` | Get screenshot of the element specified by the selector in base64 in the verbose response, can be `true` or `false`, default: `false` (`use_browser` and `verbose` must be set to `true`) |
-| `js_instructions` | Instructions/actions that will be performed when opening the page. More [here](#js-instructions). | |
-| `wait` | Spcify a duration in ms that browsers will wait after navigation.
-| `wait_for` | Specify a selector of an element for which the browser will wait after navigation.
-| `wait_browser` | Browser will wait until a certain network condition is met, possible values: `load`, `domcontentloaded`, `networkidle` |
-| `block_resources` | Blocks all images and CSS, can be `true` or `false`. Default: `true`. |
-| `window_width` | Change the dimension of the browser's viewport. |
-| `window_height` | Change the dimension of the browser's viewport. |
-| `cookies` | Pass custom cookies for the website in a string format: `cookie_name_1=cookie_value1;cookie_name_2=cookie_value_2` |
-| `own_proxy` | Use your own proxies for scraping in a format: `<protocol><username>:<password>@<host>:<port>`. |
-| `premium_proxy` | Use premium proxies that are rarely blocked. |
-| `country_code` | Use IP addresses that are geolocated to the specified country by specifying a 2-letter country [code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements).  If using code other than `US`, `premium_proxy` must be set to `true`. | 
-| `return_page_source` | Return HTML of the website before JS rendering, can be `true` or `false`. Default: `false`. |
-| `transparent_status_code` | If requested URL returns something other than a 200-299 or a 404, status code 500 will be returned. Set `false` to disable this and return the same status code as the requested URL. |
-| `timeout` | Set maximum number of ms to get response from this actor. |  
+| parameter | description |
+| -------- | ------- |
+| `url` | URL of the webpage to be scraped, required parameter. |
+| `json_response` | Will return a verbose JSON response with additional details about the webpage. Can be either `true` or `false`, default `false`. |
+| `extract_rules` | Stringified JSON with custom rules how to extract data from the webpage. More [here](#extract-rules). |
+| `render_js` | Specify, if you want to scrape the webpage with or without using a headless browser, can be `true` or `false`, default `true`. |
+| `screenshot` | Get screenshot of the browser's current viewport. If `json_response` is set to `true`, screenshot will be returned in base64. Can be `true` or `false`, default `false`. |
+| `screenshot_full_page` | Get screenshot of the full page. If `json_response` is set to `true`, screenshot will be returned in base64. Can be `true` or `false`, default `false`. |
+| `screenshot_selector` | Get screenshot of the element specified by the selector. If `json_response` is set to `true`, screenshot will be returned in base64. Must be a non-empty `string`. |
+| `js_scenario` | Instructions that will be performed after loading the page. More [here](#js-instructions). |
+| `wait` | Specify a duration in ms that the browsers will wait after loading the page. |
+| `wait_for` | Specify a selector of an element for which the browser will wait after loading the page. |
+| `wait_browser` | Can be one of: `load`, `domcontentloaded`, `networkidle`. |
+| `block_resources` | Specify, if you want to block images and CSS. Can be `true` or `false`, default `true`. |
+| `window_width` | Specify width of the browser's viewport. |
+| `window_height` | Specify height of the browser's viewport. |
+| `cookies` | Use custom cookies, must be in a string format: `cookie_name_1=cookie_value1;cookie_name_2=cookie_value_2`. |
+| `own_proxy` | Use your own proxies in a format: `<protocol><username>:<password>@<host>:<port>`. |
+| `premium_proxy` | Use IP addresses assigned to homes and offices of actual users. Reduced probability of being blocked. |
+| `stealth_proxy` | Same as `premium_proxy`. |
+| `country_code` | Use IP addresses that are geolocated to the specified country by specifying a 2-letter country [code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements).  If using code other than `US`, `premium_proxy` must be set to `true`. |
+| `custom_google` | Use this option, if you want to scrape Google related websites (such as Google Shopping). Can be `true` or `false`, default `false`. |
+| `return_page_source` | Return HTML of the website that gets returned in the response (before any Javascript rendering), can be `true` or `false`, default: `false`. |
+| `transparent_status_code` | If response returns something other than a 200-299 or a 404, status code 500 will be returned. Set `true` to disable this behaviour and return the status code of the actual response. |
+| `timeout` | Set maximum number of ms to get response from this Actor. |  
+| `forward_headers` | If set to `true`, headers in a request to this Actor begining with prefix `Spb-` will be forwarded to the target webpage alongside headers generated by us (prefix will be trimmed). |
+| `forward_headers_pure` | If set to `true`, only headers in a request to this Actor begining with prefix `Spb-` will be forwarded to the target webpage (prefix will be trimmed). |
+| `device` | Can be either `desktop` (default) or `mobile`. |
 
 ### Extract rules
 
@@ -151,8 +155,8 @@ console.log(resp.data);
 ### JS Instructions
 
 - mainly copied from here: https://www.scrapingbee.com/documentation/#js_scenario
-- instructions in order to be evalueated after navigation one by one
-- set `verbose` to `true` to get a full report of the instructions, the results of any `evaluate` instructions will be added to the `evaluate_results` field
+- instructions in order to be evaluated one by one after opening the page
+- set `verbose` to `true` to get a full report of the instructions, the results of `evaluate` instructions will be added to the `evaluate_results` field
 - example for clicking a button:
 ```ts
 const instructions = {
@@ -206,9 +210,4 @@ Supported instructions:
 
 - use when you need to run custom JavaScript
 - text/number/object results will be saved in `evaluate_results` field
-- example `{"evaluate":"document.querySelector('h1').textContent"}`
-
-## todo remaining features
-
-- their [verbose](https://www.scrapingbee.com/documentation/#json_response) response also contains:
-    - Metada / Schema data but not sure what it is
+- example `{"evaluate":"document.querySelectorAll('a').length"}`
