@@ -61,12 +61,11 @@ curl  -X GET \
 
 ### Extract rules
 
-- mainly copied from here https://www.scrapingbee.com/documentation/data-extraction/
-- there are two ways how to create an extract rule: with shortened options or with full options
+Specify a set of rules to scrape data from the target webpage. There are two ways how to create an extract rule: with shortened options or with full options:
 
 #### shortened options:
 - value for the given key serves as a `selector`
-- using `@`, we can access an attribute of the element
+- using `@`, we can access attribute of the selected element
 
 ```json
 { 
@@ -77,22 +76,29 @@ curl  -X GET \
 
 #### full options (+ nesting):
 
-- `selector` is required (`@` intended as attribute accessing will be ignored),
-- `type` can be either `item` (default) or `list` (maybe could include `length` in the future),
-- `result` - how the output for these element(s) will look like, can be:
-    - `text` (default)
+- `selector` is required,
+- `type` can be either `item` (default) or `list`,
+- `output` - how the result for these element(s) will look like, can be:
+    - `text` (default option when `output` is omitted) - text of the element
+    - `html` - HTML of the element
     - attribute name (starts with `@`, for example `@href`)
     - object with other extract rules for the given item (key + shortened or full options)
+    - `table_json` or `table_array` to scrape a table in a json or array format
+- `clean` - relevant when having `text` as `output`, specifies whether the text of the element should be trimmed of whitespaces (can be `true` or `false`, default `true`)
+
 ```json
 {
-    "custom key": {
+    "custom key for links": {
         "selector": "a",
         "type": "list",
-        "result": {
-            "linkName" : "a",
+        "output": {
+            "linkName" : {
+                "selector": "a",
+                "clean": "false"
+            },
             "href": {
                 "selector": "a",
-                "result": "@href"
+                "output": "@href"
             }
         }
 
@@ -109,7 +115,7 @@ const extractRules = {
     allLinks: {
         selector: 'a',
         type: 'list',
-        result: {
+        output: {
             title: 'a',
             link: 'a@href',
         },
