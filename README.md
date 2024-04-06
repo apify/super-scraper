@@ -1,6 +1,12 @@
 # Standby Crawler
 
-Actor url: https://yh8jx5mCjfv69espW.apify.actor/
+The Standby Crawler serves as a seamless and direct replacement for [Scrapingbee's](https://www.scrapingbee.com/documentation/) API on the Apify platform.
+
+As this is a Standby Actor, you can't start it in a traditional way via the console. Instead, you interact with it by sending HTTP requests to its designated Standby URL. The Actor keeps running continuously, resulting in scraping results taking just a few seconds.
+
+The first request following some period of inactivity might take longer, as the Actor needs to start up before it can respond.
+
+Actor Standby url: https://yh8jx5mCjfv69espW.apify.actor/
 
 Example usage using axios:
 
@@ -9,7 +15,7 @@ const resp = await axios.get('https://yh8jx5mCjfv69espW.apify.actor/', {
     params: {
         url: 'https://apify.com/store',
         wait_for: '.ActorStoreItem-title',
-        verbose: true,
+        json_response: true,
         screenshot: true,
     },
     headers: {
@@ -22,47 +28,52 @@ console.log(resp.data);
 
 Example using curl:
 
-```
-curl  -X GET \
-  'https://yh8jx5mCjfv69espW.apify.actor/?url=https://apify.com/store&wait_for=.ActorStoreItem-title&screenshot=true&verbose=true' \
+```shell
+curl -X GET \
+  'https://yh8jx5mCjfv69espW.apify.actor/?url=https://apify.com/store&wait_for=.ActorStoreItem-title&screenshot=true&json_response=true' \
   --header 'Authorization: Bearer YOUR_APIFY_TOKEN'
 ```
 
+Currently, there are two parameters that are not supported: `block_ads` and `session_id`.
+
 ## Supported params
 
-| parameter | description | dev notes |
-| -------- | ------- | ----- |
-| `url` | URL to be scraped, required parameter |
-| `verbose` | Will return verbose JSON response. Can be `true` or `false` |
-| `headers` | Headers to be used in the request |
-| `extract_rules` | Stringified JSON with custom rules how to extract data from the website. More [here](#extract-rules). |
-| `use_browser` | Specify, if you want to scrape the webpage with or without loading it in a headless browser, can be `true` or `false`, default: `false` |
-| `screenshot` | Get screenshot of the browser's current viewport in base64 in the verbose response, can be `true` or `false`, default: `false` (`use_browser` and `verbose` must be set to `true`) |
-| `screenshot_full_page` | Get screenshot of the full page in base64 in the verbose response, can be `true` or `false`, default: `false` (`use_browser` and `verbose` must be set to `true`) |
-| `screenshot_selector` | Get screenshot of the element specified by the selector in base64 in the verbose response, can be `true` or `false`, default: `false` (`use_browser` and `verbose` must be set to `true`) |
-| `js_instructions` | Instructions/actions that will be performed when opening the page. More [here](#js-instructions). | |
-| `wait` | Spcify a duration in ms that browsers will wait after navigation.
-| `wait_for` | Specify a selector of an element for which the browser will wait after navigation.
-| `wait_browser` | Browser will wait until a certain network condition is met, possible values: `load`, `domcontentloaded`, `networkidle` |
-| `block_resources` | Blocks all images and CSS, can be `true` or `false`. Default: `true`. |
-| `window_width` | Change the dimension of the browser's viewport. |
-| `window_height` | Change the dimension of the browser's viewport. |
-| `cookies` | Pass custom cookies for the website in a string format: `cookie_name_1=cookie_value1;cookie_name_2=cookie_value_2` |
-| `own_proxy` | Use your own proxies for scraping in a format: `<protocol><username>:<password>@<host>:<port>`. |
-| `premium_proxy` | Use premium proxies that are rarely blocked. |
-| `country_code` | Use IP addresses that are geolocated to the specified country by specifying a 2-letter country [code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements).  If using code other than `US`, `premium_proxy` must be set to `true`. | 
-| `return_page_source` | Return HTML of the website before JS rendering, can be `true` or `false`. Default: `false`. |
-| `transparent_status_code` | If requested URL returns something other than a 200-299 or a 404, status code 500 will be returned. Set `false` to disable this and return the same status code as the requested URL. |
-| `timeout` | Set maximum number of ms to get response from this actor. |  
+| parameter | description |
+| -------- | ------- |
+| `url` | URL of the webpage to be scraped, required parameter. |
+| `json_response` | Will return a verbose JSON response with additional details about the webpage. Can be either `true` or `false`, default `false`. |
+| `extract_rules` | Stringified JSON with custom rules how to extract data from the webpage. More [here](#extract-rules). |
+| `render_js` | Specify, if you want to scrape the webpage with or without using a headless browser, can be `true` or `false`, default `true`. |
+| `screenshot` | Get screenshot of the browser's current viewport. If `json_response` is set to `true`, screenshot will be returned in base64. Can be `true` or `false`, default `false`. |
+| `screenshot_full_page` | Get screenshot of the full page. If `json_response` is set to `true`, screenshot will be returned in base64. Can be `true` or `false`, default `false`. |
+| `screenshot_selector` | Get screenshot of the element specified by the selector. If `json_response` is set to `true`, screenshot will be returned in base64. Must be a non-empty `string`. |
+| `js_scenario` | Instructions that will be performed after loading the page. More [here](#js-scenario). |
+| `wait` | Specify a duration in ms that the browsers will wait after loading the page. |
+| `wait_for` | Specify a selector of an element for which the browser will wait after loading the page. |
+| `wait_browser` | Can be one of: `load`, `domcontentloaded`, `networkidle`. |
+| `block_resources` | Specify, if you want to block images and CSS. Can be `true` or `false`, default `true`. |
+| `window_width` | Specify width of the browser's viewport. |
+| `window_height` | Specify height of the browser's viewport. |
+| `cookies` | Use custom cookies, must be in a string format: `cookie_name_1=cookie_value1;cookie_name_2=cookie_value_2`. |
+| `own_proxy` | Use your own proxies in a format: `<protocol><username>:<password>@<host>:<port>`. |
+| `premium_proxy` | Use IP addresses assigned to homes and offices of actual users. Reduced probability of being blocked. |
+| `stealth_proxy` | Same as `premium_proxy`. |
+| `country_code` | Use IP addresses that are geolocated to the specified country by specifying a 2-letter country [code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements).  If using code other than `US`, `premium_proxy` must be set to `true`. |
+| `custom_google` | Use this option, if you want to scrape Google related websites (such as Google Shopping). Can be `true` or `false`, default `false`. |
+| `return_page_source` | Return HTML of the website that gets returned in the response (before any Javascript rendering), can be `true` or `false`, default: `false`. |
+| `transparent_status_code` | If response returns something other than a 200-299 or a 404, status code 500 will be returned. Set `true` to disable this behaviour and return the status code of the actual response. |
+| `timeout` | Set maximum number of ms to get response from this Actor. |  
+| `forward_headers` | If set to `true`, headers in a request to this Actor begining with prefix `Spb-` will be forwarded to the target webpage alongside headers generated by us (prefix will be trimmed). |
+| `forward_headers_pure` | If set to `true`, only headers in a request to this Actor begining with prefix `Spb-` will be forwarded to the target webpage (prefix will be trimmed). |
+| `device` | Can be either `desktop` (default) or `mobile`. |
 
 ### Extract rules
 
-- mainly copied from here https://www.scrapingbee.com/documentation/data-extraction/
-- there are two ways how to create an extract rule: with shortened options or with full options
+Specify a set of rules to scrape data from the target webpage. There are two ways how to create an extract rule: with shortened options or with full options:
 
 #### shortened options:
 - value for the given key serves as a `selector`
-- using `@`, we can access an attribute of the element
+- using `@`, we can access attribute of the selected element
 
 ```json
 { 
@@ -73,22 +84,29 @@ curl  -X GET \
 
 #### full options (+ nesting):
 
-- `selector` is required (`@` intended as attribute accessing will be ignored),
-- `type` can be either `item` (default) or `list` (maybe could include `length` in the future),
-- `result` - how the output for these element(s) will look like, can be:
-    - `text` (default)
+- `selector` is required,
+- `type` can be either `item` (default) or `list`,
+- `output` - how the result for these element(s) will look like, can be:
+    - `text` (default option when `output` is omitted) - text of the element
+    - `html` - HTML of the element
     - attribute name (starts with `@`, for example `@href`)
     - object with other extract rules for the given item (key + shortened or full options)
+    - `table_json` or `table_array` to scrape a table in a json or array format
+- `clean` - relevant when having `text` as `output`, specifies whether the text of the element should be trimmed of whitespaces (can be `true` or `false`, default `true`)
+
 ```json
 {
-    "custom key": {
+    "custom key for links": {
         "selector": "a",
         "type": "list",
-        "result": {
-            "linkName" : "a",
+        "output": {
+            "linkName" : {
+                "selector": "a",
+                "clean": "false"
+            },
             "href": {
                 "selector": "a",
-                "result": "@href"
+                "output": "@href"
             }
         }
 
@@ -105,7 +123,7 @@ const extractRules = {
     allLinks: {
         selector: 'a',
         type: 'list',
-        result: {
+        output: {
             title: 'a',
             link: 'a@href',
         },
@@ -148,11 +166,10 @@ console.log(resp.data);
 }
 ```
 
-### JS Instructions
+### JS Scenario
 
-- mainly copied from here: https://www.scrapingbee.com/documentation/#js_scenario
-- instructions in order to be evalueated after navigation one by one
-- set `verbose` to `true` to get a full report of the instructions, the results of any `evaluate` instructions will be added to the `evaluate_results` field
+Specify instructions in order to be executed one by one after opening the page. Set `json_response` to `true` to get a full report of the executed instructions, the results of `evaluate` instructions will be added to the `evaluate_results` field.
+
 - example for clicking a button:
 ```ts
 const instructions = {
@@ -161,54 +178,66 @@ const instructions = {
     ],
 };
 
-
 const resp = await axios.get('https://yh8jx5mCjfv69espW.apify.actor/', {
     params: {
         url: 'some url',
-        js_instructions: JSON.stringify(instructions),
+        js_scenario: JSON.stringify(instructions),
     },
     headers: {
-        Authorization: 'Bearer YOUR_TOKEN',
+        Authorization: 'Bearer YOUR_APIFY_TOKEN',
     },
 });
 
 console.log(resp.data);
 ```
 
-Supported instructions:
+#### Strict mode
 
-#### wait
+If one instructions fails, then the subsequent instructions will not be executed. To disable this, you can optionally set `strict` to `false` (which is `true` by default):
 
-- wait for time specified in ms
+```json
+{
+    "instructions": [
+        { "click": "#button1" },
+        { "click": "#button2" },
+    ],
+    "strict": false
+};
+```
+
+#### Supported instructions:
+
+##### wait
+
+- wait for some time specified in ms
 - example: `{"wait": 10000}`
 
-#### wait_for
+##### wait_for
 
-- wait for selector
+- wait for an element specified by selector
 - example `{"wait_for": "#element"}`
 
-#### click
+##### click
 
-- wait for an element then click on it
+- click on an element specified by the selector
 - example `{"click": "#button"}`
 
-#### scroll x/y
+##### wait_for_and_click
+- combination of previous two
+- example `{"wait_for_and_click": "#button"}`
 
-- scroll specified number of pixels horizontally or vertically on a page
+##### scroll x/y
+
+- scroll specified number of pixels horizontally or vertically
 - example `{"scroll_y": 1000}` or `{"scroll_x": 1000}`
 
-#### fill
+##### fill
 
-- specify selector of the input you want to fill and the value you want to fill it with
+- specify selector of the input element and the value you want to fill
 - example `{"fill": ["input_1", "value_1"]}`
 
-#### evaluate
+##### evaluate
 
-- use when you need to run custom JavaScript
+- evaluate custom javascript on the webpage
 - text/number/object results will be saved in `evaluate_results` field
-- example `{"evaluate":"document.querySelector('h1').textContent"}`
-
-## todo remaining features
-
-- their [verbose](https://www.scrapingbee.com/documentation/#json_response) response also contains:
-    - Metada / Schema data but not sure what it is
+- example `{"evaluate":"document.querySelectorAll('a').length"}`

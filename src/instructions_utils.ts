@@ -6,7 +6,7 @@ export const parseAndValidateInstructions = (rawInput: string): JsScenario => {
     const input = JSON.parse(rawInput);
 
     let strictMode = true;
-    if (input.strict) {
+    if (input.strict !== undefined) {
         if (typeof input.strict !== 'boolean') {
             throw new Error('Parameter strict in js_scenario can be only true or false');
         }
@@ -65,7 +65,7 @@ const performInstruction = async (instruction: Instruction, page: Page): Promise
                 break;
             }
             case 'click': {
-                await page.click(instruction.param as string);
+                await page.click(instruction.param as string, { timeout: 5000 });
                 break;
             }
             case 'wait_for': {
