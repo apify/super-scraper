@@ -39,7 +39,7 @@ curl  -X GET \
 | `screenshot` | Get screenshot of the browser's current viewport. If `json_response` is set to `true`, screenshot will be returned in base64. Can be `true` or `false`, default `false`. |
 | `screenshot_full_page` | Get screenshot of the full page. If `json_response` is set to `true`, screenshot will be returned in base64. Can be `true` or `false`, default `false`. |
 | `screenshot_selector` | Get screenshot of the element specified by the selector. If `json_response` is set to `true`, screenshot will be returned in base64. Must be a non-empty `string`. |
-| `js_scenario` | Instructions that will be performed after loading the page. More [here](#js-instructions). |
+| `js_scenario` | Instructions that will be performed after loading the page. More [here](#js-scenario). |
 | `wait` | Specify a duration in ms that the browsers will wait after loading the page. |
 | `wait_for` | Specify a selector of an element for which the browser will wait after loading the page. |
 | `wait_browser` | Can be one of: `load`, `domcontentloaded`, `networkidle`. |
@@ -158,11 +158,10 @@ console.log(resp.data);
 }
 ```
 
-### JS Instructions
+### JS Scenario
 
-- mainly copied from here: https://www.scrapingbee.com/documentation/#js_scenario
-- instructions in order to be evaluated one by one after opening the page
-- set `verbose` to `true` to get a full report of the instructions, the results of `evaluate` instructions will be added to the `evaluate_results` field
+Specify instructions in order to be executed one by one after opening the page. Set `json_response` to `true` to get a full report of the performed instructions, the results of `evaluate` instructions will be added to the `evaluate_results` field.
+
 - example for clicking a button:
 ```ts
 const instructions = {
@@ -171,49 +170,66 @@ const instructions = {
     ],
 };
 
-
 const resp = await axios.get('https://yh8jx5mCjfv69espW.apify.actor/', {
     params: {
         url: 'some url',
-        js_instructions: JSON.stringify(instructions),
+        js_scenario: JSON.stringify(instructions),
     },
     headers: {
-        Authorization: 'Bearer YOUR_TOKEN',
+        Authorization: 'Bearer YOUR_APIFY_TOKEN',
     },
 });
 
 console.log(resp.data);
 ```
 
-Supported instructions:
+#### Strict mode
 
-#### wait
+If one instructions fails, then the subsequent instructions will not be executed. To disable this, you can optionally set `strict` to `false` (which is `true` by default):
 
-- wait for time specified in ms
+```json
+{
+    "instructions": [
+        { "click": "#button1" },
+        { "click": "#button2" },
+    ],
+    "strict": false
+};
+```
+
+#### Supported instructions:
+
+##### wait
+
+- wait for some time specified in ms
 - example: `{"wait": 10000}`
 
-#### wait_for
+##### wait_for
 
-- wait for selector
+- wait for an element specified by selector
 - example `{"wait_for": "#element"}`
 
-#### click
+##### click
 
-- wait for an element then click on it
+- click on an element specified by the selector
 - example `{"click": "#button"}`
 
-#### scroll x/y
+##### wait_for_and_click
+- combination of previous two
+- example `{"wait_for_and_click": "#button"}`
 
-- scroll specified number of pixels horizontally or vertically on a page
+##### scroll x/y
+
+- scroll specified number of pixels horizontally or vertically
 - example `{"scroll_y": 1000}` or `{"scroll_x": 1000}`
 
-#### fill
+##### fill
 
-- specify selector of the input you want to fill and the value you want to fill it with
+- specify selector of the input element and the value you want to fill
 - example `{"fill": ["input_1", "value_1"]}`
 
-#### evaluate
+##### evaluate
 
-- use when you need to run custom JavaScript
+- evaluate custom javascript on the webpage
 - text/number/object results will be saved in `evaluate_results` field
 - example `{"evaluate":"document.querySelectorAll('a').length"}`
