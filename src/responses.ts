@@ -29,7 +29,7 @@ export const addResponse = (responseId: string, response: ServerResponse) => {
     responses.set(responseId, response);
 };
 
-export const addTimeoutToAllResponses = (timeout: number = 60) => {
+export const addTimeoutToAllResponses = (timeoutInSeconds: number = 60) => {
     const migrationErrorMessage = {
         errorMessage: `Actor had to migrate to another server. Please, retry your request.`,
     };
@@ -39,6 +39,6 @@ export const addTimeoutToAllResponses = (timeout: number = 60) => {
     for (const key of responseKeys) {
         setTimeout(() => {
             sendErrorResponseById(key, JSON.stringify(migrationErrorMessage));
-        }, timeout);
+        }, timeoutInSeconds * 1000);
     }
 };
