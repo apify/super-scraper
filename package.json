@@ -10,10 +10,13 @@
 		"@crawlee/memory-storage": "^3.8.2",
 		"apify": "^3.1.10",
 		"cheerio": "^1.0.0-rc.12",
-		"crawlee": "^3.5.4",
+		"crawlee": "^3.8.3-beta.32",
 		"header-generator": "^2.1.50",
 		"playwright": "*",
 		"uuid": "^9.0.1"
+	},
+	"overrides": {
+		"@crawlee/core": "3.8.3-beta.32"
 	},
 	"devDependencies": {
 		"@apify/eslint-config-ts": "^0.3.0",

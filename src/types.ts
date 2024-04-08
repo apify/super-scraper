@@ -108,5 +108,4 @@ export interface UserData {
 
 export interface CrawlerOptions {
     proxyConfigurationOptions: ProxyConfigurationOptions;
-    maybeRunIntervalSecs: number;
 }

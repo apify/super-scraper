@@ -232,10 +232,8 @@ const server = createServer(async (req, res) => {
             }, timeoutNumber);
         }
 
-        // maybeRunIntervalSecs is just for perf debugging
         const crawlerOptions: CrawlerOptions = {
             proxyConfigurationOptions: createProxyOptions(params),
-            maybeRunIntervalSecs: params.maybeRunIntervalSecs ? Number(params.maybeRunIntervalSecs) : 0.01,
         };
         await adddRequest(finalRequest, res, crawlerOptions);
     } catch (e) {
