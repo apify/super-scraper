@@ -28,3 +28,17 @@ export const sendErrorResponseById = (responseId: string, result: string, status
 export const addResponse = (responseId: string, response: ServerResponse) => {
     responses.set(responseId, response);
 };
+
+export const addTimeoutToAllResponses = (timeout: number = 60) => {
+    const migrationErrorMessage = {
+        errorMessage: `Actor had to migrate to another server. Please, retry your request.`,
+    };
+
+    const responseKeys = Object.keys(responses);
+
+    for (const key of responseKeys) {
+        setTimeout(() => {
+            sendErrorResponseById(key, JSON.stringify(migrationErrorMessage));
+        }, timeout);
+    }
+};

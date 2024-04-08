@@ -9,13 +9,17 @@ import { CrawlerOptions, JsScenario, RequestDetails, ScreenshotSettings, UserDat
 import { adddRequest, createAndStartCrawler, DEFAULT_CRAWLER_OPTIONS } from './crawlers.js';
 import { validateAndTransformExtractRules } from './extract_rules_utils.js';
 import { parseAndValidateInstructions } from './instructions_utils.js';
-import { sendErrorResponseById } from './responses.js';
+import { addTimeoutToAllResponses, sendErrorResponseById } from './responses.js';
 
 await Actor.init();
 
 if (Actor.isAtHome() && Actor.getEnv().metaOrigin !== 'STANDBY') {
     await Actor.fail('The Actor must start by being called using its Standby endpoint.');
 }
+
+Actor.on('migrating', () => {
+    addTimeoutToAllResponses(60);
+});
 
 const createProxyOptions = (params: ParsedUrlQuery) => {
     const proxyOptions: ProxyConfigurationOptions = {};
