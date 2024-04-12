@@ -43,6 +43,9 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
         proxyConfiguration: proxyConfig,
         maxRequestRetries: 3,
         requestQueue: queue,
+        launchContext: {
+            browserPerProxy: false,
+        },
         statisticsOptions: {
             persistenceOptions: {
                 enable: false,
@@ -333,5 +336,5 @@ export const adddRequest = async (request: RequestOptions<UserData>, res: Server
         event: 'before queue add',
         time: Date.now(),
     });
-    await crawler.addRequests([request]);
+    await crawler.requestQueue!.addRequest(request);
 };
