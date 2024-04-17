@@ -10,6 +10,7 @@ import { adddRequest, createAndStartCrawler, DEFAULT_CRAWLER_OPTIONS } from './c
 import { validateAndTransformExtractRules } from './extract_rules_utils.js';
 import { parseAndValidateInstructions } from './instructions_utils.js';
 import { addTimeoutToAllResponses, sendErrorResponseById } from './responses.js';
+import { ScrapingBee } from './params.js';
 
 await Actor.init();
 
@@ -24,8 +25,8 @@ Actor.on('migrating', () => {
 const createProxyOptions = (params: ParsedUrlQuery) => {
     const proxyOptions: ProxyConfigurationOptions = {};
 
-    const useGoogleProxy = params.custom_google === 'true';
-    const url = new URL(params.url as string);
+    const useGoogleProxy = params[ScrapingBee.customGoogle] === 'true';
+    const url = new URL(params[ScrapingBee.url] as string);
     if (url.host.includes('google') && !useGoogleProxy) {
         throw new Error('Set param custom_google to true to scrape Google urls');
     }
@@ -34,18 +35,18 @@ const createProxyOptions = (params: ParsedUrlQuery) => {
         return proxyOptions;
     }
 
-    if (params.own_proxy) {
-        proxyOptions.proxyUrls = [params.own_proxy as string];
+    if (params[ScrapingBee.ownProxy]) {
+        proxyOptions.proxyUrls = [params[ScrapingBee.ownProxy] as string];
         return proxyOptions;
     }
 
-    const usePremium = params.premium_proxy === 'true' || params.stealth_proxy === 'true';
+    const usePremium = params[ScrapingBee.premiumProxy] === 'true' || params[ScrapingBee.stealthProxy] === 'true';
     if (usePremium) {
         proxyOptions.groups = ['RESIDENTIAL'];
     }
 
-    if (params.country_code) {
-        const countryCode = (params.country_code as string).toUpperCase();
+    if (params[ScrapingBee.countryCode]) {
+        const countryCode = (params[ScrapingBee.countryCode] as string).toUpperCase();
         if (countryCode.length !== 2) {
             throw new Error('Parameter country_code must be a string of length 2');
         }
@@ -63,20 +64,20 @@ const server = createServer(async (req, res) => {
     try {
         const params = parse(req.url!.slice(2));
 
-        if (!params.url || !params.url.length) {
+        if (!params[ScrapingBee.url] || !params[ScrapingBee.url].length) {
             throw new Error('Parameter url is either missing or empty');
         }
-        const urlToScrape = params.url as string;
+        const urlToScrape = params[ScrapingBee.url] as string;
 
-        const useExtractRules = !!params.extract_rules; // using !! casts non-bool to bool
+        const useExtractRules = !!params[ScrapingBee.extractRules]; // using !! casts non-bool to bool
         let inputtedExtractRules;
         if (useExtractRules) {
-            inputtedExtractRules = JSON.parse(params.extract_rules as string);
+            inputtedExtractRules = JSON.parse(params[ScrapingBee.extractRules] as string);
         }
 
         let selectedDevice: 'desktop' | 'mobile' = 'desktop';
-        if (params.device) {
-            const device = params.device as string;
+        if (params[ScrapingBee.device]) {
+            const device = params[ScrapingBee.device] as string;
             if (device === 'mobile') {
                 selectedDevice = 'mobile';
             }
@@ -91,13 +92,15 @@ const server = createServer(async (req, res) => {
         });
         const generatedHeaders = headerGenerator.getHeaders();
 
-        const doScenario = !!params.js_scenario;
-        const jsScenario: JsScenario = doScenario ? parseAndValidateInstructions(params.js_scenario as string) : { instructions: [], strict: false };
+        const doScenario = !!params[ScrapingBee.jsScenario];
+        const jsScenario: JsScenario = doScenario
+            ? parseAndValidateInstructions(params[ScrapingBee.jsScenario] as string)
+            : { instructions: [], strict: false };
 
-        const renderJs = !(params.render_js === 'false');
+        const renderJs = !(params[ScrapingBee.renderJs] === 'false');
 
-        if (renderJs && params.wait) {
-            const parsedWait = Number.parseInt(params.wait as string, 10);
+        if (renderJs && params[ScrapingBee.wait]) {
+            const parsedWait = Number.parseInt(params[ScrapingBee.wait] as string, 10);
             if (Number.isNaN(parsedWait)) {
                 throw new Error('Number value expected for wait parameter');
             } else {
@@ -108,8 +111,8 @@ const server = createServer(async (req, res) => {
             }
         }
 
-        if (renderJs && params.wait_for) {
-            const waitForSelector = params.wait_for;
+        if (renderJs && params[ScrapingBee.waitFor]) {
+            const waitForSelector = params[ScrapingBee.waitFor];
             if (typeof waitForSelector !== 'string' || !waitForSelector.length) {
                 throw new Error('Non-empty selector expected for wait_for parameter');
             } else {
@@ -120,8 +123,8 @@ const server = createServer(async (req, res) => {
             }
         }
 
-        if (renderJs && params.wait_browser) {
-            const waitForBrowserState = params.wait_browser as string;
+        if (renderJs && params[ScrapingBee.waitBrowser]) {
+            const waitForBrowserState = params[ScrapingBee.waitBrowser] as string;
             if (!['load', 'domcontentloaded', 'networkidle'].includes(waitForBrowserState)) {
                 throw new Error('Unsupported value for wait_browser parameter');
             } else {
@@ -141,18 +144,18 @@ const server = createServer(async (req, res) => {
         const screenshotSettings: ScreenshotSettings = {
             screenshotType: 'none',
         };
-        if (params.screenshot === 'true') {
+        if (params[ScrapingBee.screenshot] === 'true') {
             screenshotSettings.screenshotType = 'window';
         }
-        if (params.screenshot_full_page === 'true') {
+        if (params[ScrapingBee.screenshotFullPage] === 'true') {
             screenshotSettings.screenshotType = 'full';
         }
-        if (params.screenshot_selector) {
-            if (typeof params.screenshot_selector !== 'string') {
+        if (params[ScrapingBee.screenshotSelector]) {
+            if (typeof params[ScrapingBee.screenshotSelector] !== 'string') {
                 throw new Error('Parameter screenshot_selector must be a string');
             }
             screenshotSettings.screenshotType = 'selector';
-            screenshotSettings.selector = params.screenshot_selector;
+            screenshotSettings.selector = params[ScrapingBee.screenshotSelector];
         }
 
         const finalRequest: RequestOptions<UserData> = {
@@ -163,7 +166,7 @@ const server = createServer(async (req, res) => {
             },
             skipNavigation: !renderJs,
             userData: {
-                jsonResponse: params.json_response === 'true',
+                jsonResponse: params[ScrapingBee.jsonResponse] === 'true',
                 screenshotSettings,
                 requestDetails,
                 extractRules: useExtractRules ? validateAndTransformExtractRules(inputtedExtractRules) : null,
@@ -174,15 +177,15 @@ const server = createServer(async (req, res) => {
                     time: requestRecieved,
                 }],
                 jsScenario,
-                blockResources: !(params.block_resources === 'false'),
-                width: Number.parseInt(params.window_width as string, 10) || 1920,
-                height: Number.parseInt(params.window_height as string, 10) || 1080,
-                returnPageSource: params.return_page_source === 'true',
-                transparentStatusCode: params.transparent_status_code === 'true',
+                blockResources: !(params[ScrapingBee.blockResources] === 'false'),
+                width: Number.parseInt(params[ScrapingBee.windowWidth] as string, 10) || 1920,
+                height: Number.parseInt(params[ScrapingBee.windowHeight] as string, 10) || 1080,
+                returnPageSource: params[ScrapingBee.returnPageSource] === 'true',
+                transparentStatusCode: params[ScrapingBee.transparentStatusCode] === 'true',
             },
         };
 
-        if (params.forward_headers === 'true' || params.forward_headers_pure === 'true') {
+        if (params[ScrapingBee.forwardHeaders] === 'true' || params[ScrapingBee.forwardHeadersPure] === 'true') {
             const reqHeaders = req.headers;
             const headersToForward: Record<string, string> = {};
             for (const headerKey of Object.keys(reqHeaders)) {
@@ -204,7 +207,7 @@ const server = createServer(async (req, res) => {
                 }
             }
 
-            if (params.forward_headers === 'true') {
+            if (params[ScrapingBee.forwardHeaders] === 'true') {
                 const currentHeaders = finalRequest.headers;
                 finalRequest.headers = {
                     ...currentHeaders,
@@ -217,14 +220,14 @@ const server = createServer(async (req, res) => {
             }
         }
 
-        if (params.cookies) {
-            finalRequest.headers!.Cookie = params.cookies as string;
+        if (params[ScrapingBee.cookies]) {
+            finalRequest.headers!.Cookie = params[ScrapingBee.cookies] as string;
         }
 
         // TODO -> do we want some default timeout for requests? Scrapingbee has 140 000 ms
         // also, do we want to limit the timeout? Scrapingbee's timeout must be between 1000 and 140000
-        if (params.timeout) {
-            const timeoutNumber = Number.parseInt(params.timeout as string, 10);
+        if (params[ScrapingBee.timeout]) {
+            const timeoutNumber = Number.parseInt(params[ScrapingBee.timeout] as string, 10);
             if (Number.isNaN(timeoutNumber)) {
                 throw new Error('Parameter timeout must be a number');
             }
