@@ -11,6 +11,7 @@ import { validateAndTransformExtractRules } from './extract_rules_utils.js';
 import { parseAndValidateInstructions } from './instructions_utils.js';
 import { addTimeoutToAllResponses, sendErrorResponseById } from './responses.js';
 import { ScrapingAnt, ScrapingBee } from './params.js';
+import { isValidResourceType } from './utils.js';
 
 await Actor.init();
 
@@ -178,6 +179,21 @@ const server = createServer(async (req, res) => {
             screenshotSettings.selector = params[ScrapingBee.screenshotSelector];
         }
 
+        let blockResourceTypes: string[] = [];
+        if (params[ScrapingAnt.blockResource]) {
+            const paramValue = params[ScrapingAnt.blockResource];
+            const resources = Array.isArray(paramValue) ? paramValue : [paramValue];
+            const resourcesToBlock = new Set<string>();
+            for (const resource of resources) {
+                if (isValidResourceType(resource)) {
+                    resourcesToBlock.add(resource);
+                } else {
+                    throw new Error(`Unsupported value in block_resource: ${resource}`);
+                }
+            }
+            blockResourceTypes = Array.from(resourcesToBlock.values());
+        }
+
         const finalRequest: RequestOptions<UserData> = {
             url: urlToScrape,
             uniqueKey: uuidv4(),
@@ -202,6 +218,7 @@ const server = createServer(async (req, res) => {
                 height: Number.parseInt(params[ScrapingBee.windowHeight] as string, 10) || 1080,
                 returnPageSource: params[ScrapingBee.returnPageSource] === 'true',
                 transparentStatusCode: params[ScrapingBee.transparentStatusCode] === 'true',
+                blockResourceTypes,
             },
         };
 

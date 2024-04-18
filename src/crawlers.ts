@@ -132,12 +132,21 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 timeMeasures,
                 jsScenario,
                 returnPageSource,
+                blockResourceTypes,
             } = request.userData as UserData;
 
             // See comment in crawler.autoscaledPoolOptions.runTaskFunction override
             timeMeasures.push((global as unknown as { latestRequestTaskTimeMeasure: TimeMeasure }).latestRequestTaskTimeMeasure);
 
             const renderJs = !request.skipNavigation;
+
+            if (renderJs && blockResourceTypes.length) {
+                await page.route('**', async (route) => {
+                    if (blockResourceTypes.includes(route.request().resourceType())) {
+                        await route.abort();
+                    }
+                });
+            }
 
             const xhr: XHRRequestData[] = [];
             if (renderJs && jsonResponse) {
