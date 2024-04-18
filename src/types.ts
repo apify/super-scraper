@@ -99,6 +99,7 @@ export interface UserData {
     timeMeasures: TimeMeasure[],
     jsScenario: JsScenario,
     blockResources: boolean,
+    blockResourceTypes: string[],
     height: number,
     width: number,
     returnPageSource: boolean,

@@ -9,3 +9,8 @@ export const transformTimeMeasuresToRelative = (timeMeasures: TimeMeasure[]): Ti
         };
     }).sort((a, b) => a.time - b.time);
 };
+
+const resources = ['document', 'stylesheet', 'image', 'media', 'font', 'script', 'texttrack', 'xhr', 'fetch', 'eventsource', 'websocket', 'manifest', 'other'];
+export const isValidResourceType = (resource: string) => {
+    return resources.includes(resource);
+};
