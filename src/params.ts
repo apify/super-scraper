@@ -26,3 +26,12 @@ export enum ScrapingBee {
     jsonResponse = 'json_response',
     blockResources = 'block_resources'
 }
+
+export enum ScrapingAnt {
+    // we already have: url, return_page_source, cookies, proxy_country
+    browser = 'browser',
+    jsSnippet = 'js_snippet',
+    proxyType = 'proxy_type',
+    waitForSelector = 'wait_for_selector',
+    blockResource = 'block_resource'
+}

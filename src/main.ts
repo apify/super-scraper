@@ -10,7 +10,7 @@ import { adddRequest, createAndStartCrawler, DEFAULT_CRAWLER_OPTIONS } from './c
 import { validateAndTransformExtractRules } from './extract_rules_utils.js';
 import { parseAndValidateInstructions } from './instructions_utils.js';
 import { addTimeoutToAllResponses, sendErrorResponseById } from './responses.js';
-import { ScrapingBee } from './params.js';
+import { ScrapingAnt, ScrapingBee } from './params.js';
 
 await Actor.init();
 
@@ -24,6 +24,11 @@ Actor.on('migrating', () => {
 
 const createProxyOptions = (params: ParsedUrlQuery) => {
     const proxyOptions: ProxyConfigurationOptions = {};
+
+    const proxyType = params[ScrapingAnt.proxyType] as string || 'datacenter';
+    if (proxyType !== 'datacenter' && proxyType !== 'residential') {
+        throw new Error('Parameter proxy_type can be either residential or datacenter');
+    }
 
     const useGoogleProxy = params[ScrapingBee.customGoogle] === 'true';
     const url = new URL(params[ScrapingBee.url] as string);
@@ -40,7 +45,7 @@ const createProxyOptions = (params: ParsedUrlQuery) => {
         return proxyOptions;
     }
 
-    const usePremium = params[ScrapingBee.premiumProxy] === 'true' || params[ScrapingBee.stealthProxy] === 'true';
+    const usePremium = params[ScrapingBee.premiumProxy] === 'true' || params[ScrapingBee.stealthProxy] === 'true' || proxyType === 'residential';
     if (usePremium) {
         proxyOptions.groups = ['RESIDENTIAL'];
     }
@@ -97,7 +102,7 @@ const server = createServer(async (req, res) => {
             ? parseAndValidateInstructions(params[ScrapingBee.jsScenario] as string)
             : { instructions: [], strict: false };
 
-        const renderJs = !(params[ScrapingBee.renderJs] === 'false');
+        const renderJs = !(params[ScrapingBee.renderJs] === 'false' || params[ScrapingAnt.browser] === 'false');
 
         if (renderJs && params[ScrapingBee.wait]) {
             const parsedWait = Number.parseInt(params[ScrapingBee.wait] as string, 10);
@@ -111,10 +116,10 @@ const server = createServer(async (req, res) => {
             }
         }
 
-        if (renderJs && params[ScrapingBee.waitFor]) {
-            const waitForSelector = params[ScrapingBee.waitFor];
+        if (renderJs && (params[ScrapingBee.waitFor] || params[ScrapingAnt.waitForSelector])) {
+            const waitForSelector = params[ScrapingBee.waitFor] || params[ScrapingAnt.waitForSelector];
             if (typeof waitForSelector !== 'string' || !waitForSelector.length) {
-                throw new Error('Non-empty selector expected for wait_for parameter');
+                throw new Error('Non-empty selector expected for wait_for and wait_for_selector parameters');
             } else {
                 jsScenario.instructions.unshift({
                     action: 'wait_for',
@@ -133,6 +138,21 @@ const server = createServer(async (req, res) => {
                     param: waitForBrowserState,
                 });
             }
+        }
+
+        if (renderJs && params[ScrapingAnt.jsSnippet]) {
+            const jsSnippetBase64 = params[ScrapingAnt.jsSnippet] as string;
+            if (!jsSnippetBase64.length) {
+                throw new Error('Parameter js_snippet must be a non empty string');
+            }
+            const jsSnippet = Buffer.from(jsSnippetBase64, 'base64').toString();
+            if (!jsSnippet.length) {
+                throw new Error('Decoding of js_snippet was not successful');
+            }
+            jsScenario.instructions.unshift({
+                action: 'evaluate',
+                param: jsSnippet,
+            });
         }
 
         const requestDetails: RequestDetails = {
@@ -189,7 +209,7 @@ const server = createServer(async (req, res) => {
             const reqHeaders = req.headers;
             const headersToForward: Record<string, string> = {};
             for (const headerKey of Object.keys(reqHeaders)) {
-                if (headerKey.startsWith('spb-')) {
+                if (headerKey.startsWith('spb-') || headerKey.startsWith('ant-')) {
                     const withoutPrefixKey = headerKey.slice(4);
 
                     // scraping bee ingores these
