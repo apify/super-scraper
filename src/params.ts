@@ -39,7 +39,7 @@ export enum ScrapingAnt {
 
 export enum ScraperApi {
     // we already have: wait_for_selector, country_code
-    // skipped for now: session_number,
+    // skipped for now: session_number, autoparse
     render = 'render',
     premium = 'premium',
     binaryTarget = 'binary_target',
