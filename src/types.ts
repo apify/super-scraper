@@ -27,7 +27,7 @@ export interface VerboseResult {
     evaluateResults: string[],
     jsScenarioReport: JsScenarioReport | Record<string, never>,
     headers: Record<string, string | string[]>,
-    type: 'html' | 'json',
+    type: 'html' | 'json' | 'file',
     screenshot: string | null,
     iframes: IFrameData[],
     xhr: XHRRequestData[],
@@ -105,6 +105,7 @@ export interface UserData {
     returnPageSource: boolean,
     transparentStatusCode: boolean,
     nonbrowserRequestStatus?: number,
+    binaryTarget: boolean,
 }
 
 export interface CrawlerOptions {
