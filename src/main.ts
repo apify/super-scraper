@@ -204,7 +204,7 @@ const server = createServer(async (req, res) => {
         if (params[ScraperApi.binaryTarget]) {
             const binaryTargetIsTrue = params[ScraperApi.binaryTarget] === 'true';
             if (binaryTargetIsTrue && renderJs) {
-                throw new Error('Param binary_target supported only when render_js is set to false');
+                throw new Error('Param binary_target can be used only when JS rendering is set to false (render_js, browser, render)');
             }
             binaryTarget = binaryTargetIsTrue;
         }
