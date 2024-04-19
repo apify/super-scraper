@@ -274,6 +274,10 @@ const server = createServer(async (req, res) => {
             }
         }
 
+        if (params[ScrapingBee.cookies]) {
+            finalRequest.headers!.Cookie = params[ScrapingBee.cookies] as string;
+        }
+
         if (params[ScraperApi.keepHeaders] === 'true') {
             const reqHeaders = req.headers;
             const headersToForward: Record<string, string> = {};
@@ -284,10 +288,6 @@ const server = createServer(async (req, res) => {
                 headersToForward[key] = val as string;
             }
             finalRequest.headers = headersToForward;
-        }
-
-        if (params[ScrapingBee.cookies]) {
-            finalRequest.headers!.Cookie = params[ScrapingBee.cookies] as string;
         }
 
         // TODO -> do we want some default timeout for requests? Scrapingbee has 140 000 ms
