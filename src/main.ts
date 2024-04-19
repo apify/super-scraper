@@ -10,7 +10,7 @@ import { adddRequest, createAndStartCrawler, DEFAULT_CRAWLER_OPTIONS } from './c
 import { validateAndTransformExtractRules } from './extract_rules_utils.js';
 import { parseAndValidateInstructions } from './instructions_utils.js';
 import { addTimeoutToAllResponses, sendErrorResponseById } from './responses.js';
-import { ScrapingAnt, ScrapingBee } from './params.js';
+import { ScraperApi, ScrapingAnt, ScrapingBee } from './params.js';
 import { isValidResourceType } from './utils.js';
 
 await Actor.init();
@@ -46,7 +46,11 @@ const createProxyOptions = (params: ParsedUrlQuery) => {
         return proxyOptions;
     }
 
-    const usePremium = params[ScrapingBee.premiumProxy] === 'true' || params[ScrapingBee.stealthProxy] === 'true' || proxyType === 'residential';
+    const usePremium = params[ScrapingBee.premiumProxy] === 'true'
+        || params[ScrapingBee.stealthProxy] === 'true'
+        || proxyType === 'residential'
+        || params[ScraperApi.premium] === 'true'
+        || params[ScraperApi.ultraPremium] === 'true';
     if (usePremium) {
         proxyOptions.groups = ['RESIDENTIAL'];
     }
@@ -82,8 +86,8 @@ const server = createServer(async (req, res) => {
         }
 
         let selectedDevice: 'desktop' | 'mobile' = 'desktop';
-        if (params[ScrapingBee.device]) {
-            const device = params[ScrapingBee.device] as string;
+        if (params[ScrapingBee.device] || params[ScraperApi.deviceType]) {
+            const device = (params[ScrapingBee.device] || params[ScraperApi.deviceType]) as string;
             if (device === 'mobile') {
                 selectedDevice = 'mobile';
             }
@@ -103,7 +107,9 @@ const server = createServer(async (req, res) => {
             ? parseAndValidateInstructions(params[ScrapingBee.jsScenario] as string)
             : { instructions: [], strict: false };
 
-        const renderJs = !(params[ScrapingBee.renderJs] === 'false' || params[ScrapingAnt.browser] === 'false');
+        const renderJs = !(params[ScrapingBee.renderJs] === 'false'
+            || params[ScrapingAnt.browser] === 'false'
+            || params[ScraperApi.render] === 'false');
 
         if (renderJs && params[ScrapingBee.wait]) {
             const parsedWait = Number.parseInt(params[ScrapingBee.wait] as string, 10);
@@ -194,6 +200,15 @@ const server = createServer(async (req, res) => {
             blockResourceTypes = Array.from(resourcesToBlock.values());
         }
 
+        let binaryTarget = false;
+        if (params[ScraperApi.binaryTarget]) {
+            const binaryTargetIsTrue = params[ScraperApi.binaryTarget] === 'true';
+            if (binaryTargetIsTrue && renderJs) {
+                throw new Error('Param binary_target supported only when render_js is set to false');
+            }
+            binaryTarget = binaryTargetIsTrue;
+        }
+
         const finalRequest: RequestOptions<UserData> = {
             url: urlToScrape,
             uniqueKey: uuidv4(),
@@ -219,10 +234,11 @@ const server = createServer(async (req, res) => {
                 returnPageSource: params[ScrapingBee.returnPageSource] === 'true',
                 transparentStatusCode: params[ScrapingBee.transparentStatusCode] === 'true',
                 blockResourceTypes,
+                binaryTarget,
             },
         };
 
-        if (params[ScrapingBee.forwardHeaders] === 'true' || params[ScrapingBee.forwardHeadersPure] === 'true') {
+        if (params[ScrapingBee.forwardHeaders] === 'true' || params[ScrapingBee.forwardHeadersPure] === 'true' || params[ScraperApi.keepHeaders] !== 'true') {
             const reqHeaders = req.headers;
             const headersToForward: Record<string, string> = {};
             for (const headerKey of Object.keys(reqHeaders)) {
@@ -251,10 +267,23 @@ const server = createServer(async (req, res) => {
                     ...headersToForward,
                 };
             } else {
+                // forward headers pure
                 finalRequest.headers = {
                     ...headersToForward,
                 };
             }
+        }
+
+        if (params[ScraperApi.keepHeaders] === 'true') {
+            const reqHeaders = req.headers;
+            const headersToForward: Record<string, string> = {};
+            for (const [key, val] of Object.entries(reqHeaders)) {
+                if (Array.isArray(val)) {
+                    continue;
+                }
+                headersToForward[key] = val as string;
+            }
+            finalRequest.headers = headersToForward;
         }
 
         if (params[ScrapingBee.cookies]) {

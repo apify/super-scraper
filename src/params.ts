@@ -1,4 +1,5 @@
 export enum ScrapingBee {
+    // skipped for now: session_id, block_ads
     url = 'url',
     extractRules = 'extract_rules',
     device = 'device',
@@ -34,4 +35,15 @@ export enum ScrapingAnt {
     proxyType = 'proxy_type',
     waitForSelector = 'wait_for_selector',
     blockResource = 'block_resource'
+}
+
+export enum ScraperApi {
+    // we already have: wait_for_selector, country_code
+    // skipped for now: session_number,
+    render = 'render',
+    premium = 'premium',
+    binaryTarget = 'binary_target',
+    keepHeaders = 'keep_headers',
+    deviceType = 'device_type',
+    ultraPremium = 'ultra_premium',
 }

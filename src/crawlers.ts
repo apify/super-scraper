@@ -133,11 +133,13 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 jsScenario,
                 returnPageSource,
                 blockResourceTypes,
+                binaryTarget,
             } = request.userData as UserData;
 
             // See comment in crawler.autoscaledPoolOptions.runTaskFunction override
             timeMeasures.push((global as unknown as { latestRequestTaskTimeMeasure: TimeMeasure }).latestRequestTaskTimeMeasure);
 
+            const responseId = request.uniqueKey;
             const renderJs = !request.skipNavigation;
 
             if (renderJs && blockResourceTypes.length) {
@@ -167,6 +169,13 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 });
             }
 
+            if (renderJs) {
+                timeMeasures.push({
+                    event: 'page loaded',
+                    time: Date.now(),
+                });
+            }
+
             const jsScenarioReportFull: FullJsScenarioReport = {};
             if (renderJs && jsScenario.instructions.length) {
                 const { jsScenarioReport, evaluateResults } = await performInstructionsAndGenerateReport(jsScenario, page);
@@ -193,19 +202,43 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 }
                 requestDetails.resolvedUrl = resp.url;
                 requestDetails.responseHeaders = resp.headers as Record<string, string | string[]>;
+
+                if (binaryTarget) {
+                    const result = resp.rawBody;
+                    const contentType = resp.headers['content-type'];
+                    if (!contentType) {
+                        throw new Error(`No content-type returned in the response`);
+                    }
+                    if (jsonResponse) {
+                        const verboseResponse: VerboseResult = {
+                            body: result.toString(),
+                            cookies: [],
+                            evaluateResults: [],
+                            jsScenarioReport: {},
+                            headers: requestDetails.responseHeaders,
+                            type: 'file',
+                            iframes: [],
+                            xhr,
+                            initialStatusCode: statusCode,
+                            resolvedUrl: requestDetails.resolvedUrl,
+                            screenshot: null,
+                        };
+                        await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
+                        sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');
+                        return;
+                    }
+                    await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result });
+                    sendSuccResponseById(responseId, result, contentType);
+                    return;
+                }
+
                 $ = load(resp.body);
             } else {
-                timeMeasures.push({
-                    event: 'page loaded',
-                    time: Date.now(),
-                });
                 requestDetails.resolvedUrl = response?.url() || '';
                 requestDetails.responseHeaders = response?.headers() || {};
                 $ = await parseWithCheerio() as CheerioAPI;
                 statusCode = response?.status() || null;
             }
-
-            const responseId = request.uniqueKey;
 
             const cookies = await page.context().cookies(request.url) || [];
 
