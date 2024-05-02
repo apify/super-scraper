@@ -55,8 +55,8 @@ const createProxyOptions = (params: ParsedUrlQuery) => {
         proxyOptions.groups = ['RESIDENTIAL'];
     }
 
-    if (params[ScrapingBee.countryCode]) {
-        const countryCode = (params[ScrapingBee.countryCode] as string).toUpperCase();
+    if (params[ScrapingBee.countryCode] || params[ScrapingAnt.proxyCountry]) {
+        const countryCode = ((params[ScrapingBee.countryCode] || params[ScrapingAnt.proxyCountry]) as string).toUpperCase();
         if (countryCode.length !== 2) {
             throw new Error('Parameter country_code must be a string of length 2');
         }

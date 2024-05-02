@@ -29,12 +29,13 @@ export enum ScrapingBee {
 }
 
 export enum ScrapingAnt {
-    // we already have: url, return_page_source, cookies, proxy_country
+    // we already have: url, return_page_source, cookies
     browser = 'browser',
     jsSnippet = 'js_snippet',
     proxyType = 'proxy_type',
     waitForSelector = 'wait_for_selector',
-    blockResource = 'block_resource'
+    blockResource = 'block_resource',
+    proxyCountry = 'proxy_country',
 }
 
 export enum ScraperApi {
