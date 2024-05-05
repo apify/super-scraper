@@ -1,5 +1,6 @@
 import { AnyNode, Cheerio, CheerioAPI, load } from 'cheerio';
 import { ExtractRule, ExtractRules } from './types.js';
+import { UserInputError } from './errors.js';
 
 // validation and transformation to full Extract Rules (i.e. including all parameters, not the shortened version, for easier scraping process)
 
@@ -7,15 +8,15 @@ function validateAndTransformFullOptionsRule(key: string, inputtedExtractRule: R
     const { selector, output = 'text', type = 'item', clean = true } = inputtedExtractRule;
 
     if (!selector || typeof selector !== 'string' || !selector.length) {
-        throw new Error(`Selector must be a non-empty string, rule for key: ${key}`);
+        throw new UserInputError(`Selector must be a non-empty string, rule for key: ${key}`);
     }
 
     if (typeof type !== 'string' || (type !== 'item' && type !== 'list')) {
-        throw new Error(`Type can be either 'item' or 'list', rule for a key: ${key}`);
+        throw new UserInputError(`Type can be either 'item' or 'list', rule for a key: ${key}`);
     }
 
     if (typeof clean !== 'boolean') {
-        throw new Error('Clean can be set either to true or false');
+        throw new UserInputError('Clean can be set either to true or false');
     }
 
     if (typeof output === 'string') {
@@ -30,7 +31,7 @@ function validateAndTransformFullOptionsRule(key: string, inputtedExtractRule: R
             };
         }
 
-        throw new Error(
+        throw new UserInputError(
             `Result in the extract rule for ${key} has invalid value, expected one of ${JSON.stringify(availableTypes)} or an attribute name starting with '@'`,
         );
     }
@@ -45,7 +46,7 @@ function validateAndTransformFullOptionsRule(key: string, inputtedExtractRule: R
         };
     }
 
-    throw new Error(`Output in the extract rule for ${key} in a wrong format, expected object or a string`);
+    throw new UserInputError(`Output in the extract rule for ${key} in a wrong format, expected object or a string`);
 }
 
 function validateAndTransformShortenedRule(key: string, inputtedRule: string): ExtractRule {
@@ -54,12 +55,12 @@ function validateAndTransformShortenedRule(key: string, inputtedRule: string): E
     if (trimmedRule.includes('@')) {
         const selector = trimmedRule.split('@').shift() as string;
         if (!selector.length) {
-            throw new Error(`Selector cannot be an empty string, rule: ${trimmedRule} for key ${key}`);
+            throw new UserInputError(`Selector cannot be an empty string, rule: ${trimmedRule} for key ${key}`);
         }
 
         const attributeName = trimmedRule.slice(selector.length);
         if (!attributeName.length) {
-            throw new Error(`Attribute name cannot be an empty string, rule: ${trimmedRule} for key ${key}`);
+            throw new UserInputError(`Attribute name cannot be an empty string, rule: ${trimmedRule} for key ${key}`);
         }
 
         return {
@@ -89,7 +90,7 @@ export function validateAndTransformExtractRules(inputtedExtractRules: Record<st
         } else if (typeof keyValue === 'string') {
             extractRules[key] = validateAndTransformShortenedRule(key, keyValue);
         } else {
-            throw new Error(`Extract rule for ${key} in a wrong format, expected object or a string`);
+            throw new UserInputError(`Extract rule for ${key} in a wrong format, expected object or a string`);
         }
     }
 
@@ -169,7 +170,7 @@ function scrapeItems(item: Cheerio<AnyNode>, output: string | ExtractRules, clea
         const newHtmlWithItem = $('body').append(item);
         return scrapeExtractRules(newHtmlWithItem, output);
     }
-    throw new Error('Invalid output value');
+    throw new UserInputError('Invalid output value');
 }
 
 function scrapeExtractRules($: Cheerio<AnyNode>, extractRules: ExtractRules) {
