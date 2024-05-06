@@ -1,6 +1,7 @@
 import { Page } from 'playwright';
 import { sleep } from 'crawlee';
 import { Action, FullJsScenarioReport, IndividualInstructionReport, Instruction, JsScenario } from './types.js';
+import { UserInputError } from './errors.js';
 
 export const parseAndValidateInstructions = (rawInput: string): JsScenario => {
     const input = JSON.parse(rawInput);
@@ -8,7 +9,7 @@ export const parseAndValidateInstructions = (rawInput: string): JsScenario => {
     let strictMode = true;
     if (input.strict !== undefined) {
         if (typeof input.strict !== 'boolean') {
-            throw new Error('Parameter strict in js_scenario can be only true or false');
+            throw new UserInputError('Parameter strict in js_scenario can be only true or false');
         }
         strictMode = input.strict;
     }
@@ -24,21 +25,21 @@ export const parseAndValidateInstructions = (rawInput: string): JsScenario => {
     const parsedInstructions: Instruction[] = [];
     for (const instruction of instructions) {
         if (typeof instruction !== 'object') {
-            throw new Error('Instruction must be an object');
+            throw new UserInputError('Instruction must be an object');
         }
         if (Object.keys(instruction).length !== 1) {
-            throw new Error('Instruction must include only one action with params');
+            throw new UserInputError('Instruction must include only one action with params');
         }
         const action = Object.keys(instruction)[0];
         const param = instruction[action];
 
         const possibleActions = ['wait', 'wait_for', 'click', 'scroll_x', 'scroll_y', 'fill', 'evaluate', 'wait_for_and_click']; // todo
         if (typeof action !== 'string' || !possibleActions.includes(action)) {
-            throw new Error(`Unsupported instruction: ${action}`);
+            throw new UserInputError(`Unsupported instruction: ${action}`);
         }
 
         if (typeof param !== 'string' && typeof param !== 'number' && !Array.isArray(param)) {
-            throw new Error(`Unsupported params: ${action}, can be either number, string, or an array of strings`);
+            throw new UserInputError(`Unsupported params: ${action}, can be either number, string, or an array of strings`);
         }
 
         if (action === 'wait_for_and_click') {

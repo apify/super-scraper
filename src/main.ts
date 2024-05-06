@@ -12,6 +12,7 @@ import { parseAndValidateInstructions } from './instructions_utils.js';
 import { addTimeoutToAllResponses, sendErrorResponseById } from './responses.js';
 import { ScraperApi, ScrapingAnt, ScrapingBee } from './params.js';
 import { isValidResourceType } from './utils.js';
+import { UserInputError } from './errors.js';
 
 await Actor.init();
 
@@ -28,13 +29,13 @@ const createProxyOptions = (params: ParsedUrlQuery) => {
 
     const proxyType = params[ScrapingAnt.proxyType] as string || 'datacenter';
     if (proxyType !== 'datacenter' && proxyType !== 'residential') {
-        throw new Error('Parameter proxy_type can be either residential or datacenter');
+        throw new UserInputError('Parameter proxy_type can be either residential or datacenter');
     }
 
     const useGoogleProxy = params[ScrapingBee.customGoogle] === 'true';
     const url = new URL(params[ScrapingBee.url] as string);
     if (url.host.includes('google') && !useGoogleProxy) {
-        throw new Error('Set param custom_google to true to scrape Google urls');
+        throw new UserInputError('Set param custom_google to true to scrape Google urls');
     }
     if (useGoogleProxy) {
         proxyOptions.groups = ['GOOGLE_SERP'];
@@ -58,10 +59,10 @@ const createProxyOptions = (params: ParsedUrlQuery) => {
     if (params[ScrapingBee.countryCode] || params[ScrapingAnt.proxyCountry]) {
         const countryCode = ((params[ScrapingBee.countryCode] || params[ScrapingAnt.proxyCountry]) as string).toUpperCase();
         if (countryCode.length !== 2) {
-            throw new Error('Parameter country_code must be a string of length 2');
+            throw new UserInputError('Parameter country_code must be a string of length 2');
         }
         if (!usePremium && countryCode !== 'US') {
-            throw new Error('Parameter country_code must be used with premium_proxy or stealth_proxy set to true when using non-US country');
+            throw new UserInputError('Parameter country_code must be used with premium_proxy or stealth_proxy set to true when using non-US country');
         }
         proxyOptions.countryCode = countryCode;
     }
@@ -75,7 +76,7 @@ const server = createServer(async (req, res) => {
         const params = parse(req.url!.slice(2));
 
         if (!params[ScrapingBee.url] || !params[ScrapingBee.url].length) {
-            throw new Error('Parameter url is either missing or empty');
+            throw new UserInputError('Parameter url is either missing or empty');
         }
         const urlToScrape = params[ScrapingBee.url] as string;
 
@@ -93,7 +94,7 @@ const server = createServer(async (req, res) => {
             }
 
             if (device !== 'desktop' && device !== 'mobile') {
-                throw new Error('Param device can be either desktop or mobile');
+                throw new UserInputError('Param device can be either desktop or mobile');
             }
         }
 
@@ -114,7 +115,7 @@ const server = createServer(async (req, res) => {
         if (renderJs && params[ScrapingBee.wait]) {
             const parsedWait = Number.parseInt(params[ScrapingBee.wait] as string, 10);
             if (Number.isNaN(parsedWait)) {
-                throw new Error('Number value expected for wait parameter');
+                throw new UserInputError('Number value expected for wait parameter');
             } else {
                 jsScenario.instructions.unshift({
                     action: 'wait',
@@ -126,7 +127,7 @@ const server = createServer(async (req, res) => {
         if (renderJs && (params[ScrapingBee.waitFor] || params[ScrapingAnt.waitForSelector])) {
             const waitForSelector = params[ScrapingBee.waitFor] || params[ScrapingAnt.waitForSelector];
             if (typeof waitForSelector !== 'string' || !waitForSelector.length) {
-                throw new Error('Non-empty selector expected for wait_for and wait_for_selector parameters');
+                throw new UserInputError('Non-empty selector expected for wait_for and wait_for_selector parameters');
             } else {
                 jsScenario.instructions.unshift({
                     action: 'wait_for',
@@ -138,7 +139,7 @@ const server = createServer(async (req, res) => {
         if (renderJs && params[ScrapingBee.waitBrowser]) {
             const waitForBrowserState = params[ScrapingBee.waitBrowser] as string;
             if (!['load', 'domcontentloaded', 'networkidle'].includes(waitForBrowserState)) {
-                throw new Error('Unsupported value for wait_browser parameter');
+                throw new UserInputError('Unsupported value for wait_browser parameter');
             } else {
                 jsScenario.instructions.unshift({
                     action: 'wait_browser',
@@ -150,11 +151,11 @@ const server = createServer(async (req, res) => {
         if (renderJs && params[ScrapingAnt.jsSnippet]) {
             const jsSnippetBase64 = params[ScrapingAnt.jsSnippet] as string;
             if (!jsSnippetBase64.length) {
-                throw new Error('Parameter js_snippet must be a non empty string');
+                throw new UserInputError('Parameter js_snippet must be a non empty string');
             }
             const jsSnippet = Buffer.from(jsSnippetBase64, 'base64').toString();
             if (!jsSnippet.length) {
-                throw new Error('Decoding of js_snippet was not successful');
+                throw new UserInputError('Decoding of js_snippet was not successful');
             }
             jsScenario.instructions.unshift({
                 action: 'evaluate',
@@ -179,7 +180,7 @@ const server = createServer(async (req, res) => {
         }
         if (params[ScrapingBee.screenshotSelector]) {
             if (typeof params[ScrapingBee.screenshotSelector] !== 'string') {
-                throw new Error('Parameter screenshot_selector must be a string');
+                throw new UserInputError('Parameter screenshot_selector must be a string');
             }
             screenshotSettings.screenshotType = 'selector';
             screenshotSettings.selector = params[ScrapingBee.screenshotSelector];
@@ -194,7 +195,7 @@ const server = createServer(async (req, res) => {
                 if (isValidResourceType(resource)) {
                     resourcesToBlock.add(resource);
                 } else {
-                    throw new Error(`Unsupported value in block_resource: ${resource}`);
+                    throw new UserInputError(`Unsupported value in block_resource: ${resource}`);
                 }
             }
             blockResourceTypes = Array.from(resourcesToBlock.values());
@@ -204,7 +205,7 @@ const server = createServer(async (req, res) => {
         if (params[ScraperApi.binaryTarget]) {
             const binaryTargetIsTrue = params[ScraperApi.binaryTarget] === 'true';
             if (binaryTargetIsTrue && renderJs) {
-                throw new Error('Param binary_target can be used only when JS rendering is set to false (render_js, browser, render)');
+                throw new UserInputError('Param binary_target can be used only when JS rendering is set to false (render_js, browser, render)');
             }
             binaryTarget = binaryTargetIsTrue;
         }
@@ -295,7 +296,7 @@ const server = createServer(async (req, res) => {
         if (params[ScrapingBee.timeout]) {
             const timeoutNumber = Number.parseInt(params[ScrapingBee.timeout] as string, 10);
             if (Number.isNaN(timeoutNumber)) {
-                throw new Error('Parameter timeout must be a number');
+                throw new UserInputError('Parameter timeout must be a number');
             }
             setTimeout(() => {
                 const timeoutErrorMessage = {
@@ -310,10 +311,12 @@ const server = createServer(async (req, res) => {
         };
         await adddRequest(finalRequest, res, crawlerOptions);
     } catch (e) {
+        const error = e as Error;
         const errorMessage = {
-            errorMessage: (e as Error).message,
+            errorMessage: error.message,
         };
-        res.writeHead(500, { 'Content-Type': 'application/json' });
+        const statusCode = error instanceof UserInputError ? 400 : 500;
+        res.writeHead(statusCode, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(errorMessage));
     }
 });
