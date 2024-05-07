@@ -1,17 +1,23 @@
-# Standby Crawler
+# SuperScraper
 
-The Standby Crawler serves as a seamless and direct replacement for [ScrapingBee's](https://www.scrapingbee.com/documentation/), [ScrapingAnt's](https://docs.scrapingant.com/request-response-format#available-parameters), and [ScraperAPI's](https://docs.scraperapi.com/making-requests/customizing-requests) API on the Apify platform.
+The Super-Scraper Actor provides an HTTP API for scraping websites,
+which is compatible with the API of [ScrapingBee](https://www.scrapingbee.com/documentation/),
+[ScrapingAnt](https://docs.scrapingant.com/request-response-format#available-parameters),
+and [ScraperAPI](https://docs.scraperapi.com/making-requests/customizing-requests).
+The Actor can be used as drop-in replacement for these services.
 
-As this is a Standby Actor, you can't start it in a traditional way via the console. Instead, you interact with it by sending HTTP requests to its designated Standby URL. The Actor keeps running continuously, resulting in scraping results taking just a few seconds.
+Note that the Actor uses a new experimental Standby mode, so it's not started the traditional way from Apify Console,
+but it's invoked via HTTP REST API provided directly by the Actor.
 
-The first request following some period of inactivity might take longer, as the Actor needs to start up before it can respond.
+## Usage examples
 
-Actor Standby url: https://yh8jx5mCjfv69espW.apify.actor/
+To run these examples, you need an Apify API token,
+which you can find under [Settings > Integrations](https://console.apify.com/account/integrations) in Apify Console.
 
-Example usage using axios:
+### Node.js with Axios
 
 ```ts
-const resp = await axios.get('https://yh8jx5mCjfv69espW.apify.actor/', {
+const resp = await axios.get('https://apify--super-scraper-api.apify.actor/', {
     params: {
         url: 'https://apify.com/store',
         wait_for: '.ActorStoreItem-title',
@@ -19,39 +25,43 @@ const resp = await axios.get('https://yh8jx5mCjfv69espW.apify.actor/', {
         screenshot: true,
     },
     headers: {
-        Authorization: 'Bearer <YOUR_APIFY_TOKEN>',
+        Authorization: 'Bearer <YOUR_APIFY_API_TOKEN>',
     },
 });
 
 console.log(resp.data);
 ```
 
-Example using curl:
+### curl
 
 ```shell
 curl -X GET \
-  'https://yh8jx5mCjfv69espW.apify.actor/?url=https://apify.com/store&wait_for=.ActorStoreItem-title&screenshot=true&json_response=true' \
-  --header 'Authorization: Bearer YOUR_APIFY_TOKEN'
+  'https://apify--super-scraper-api.apify.actor/?url=https://apify.com/store&wait_for=.ActorStoreItem-title&screenshot=true&json_response=true' \
+  --header 'Authorization: Bearer YOUR_APIFY_API_TOKEN'
 ```
 
-You can also add your Apify token as a query parameter to authenticate the requests:
+Instead of using the `Authorization` HTTP header, you can also pass your Apify API token via the `token` query parameter to authenticate the requests:
 
 ```ts
-const resp = await axios.get('https://yh8jx5mCjfv69espW.apify.actor/', {
+const resp = await axios.get('https://apify--super-scraper-api.apify.actor/', {
     params: {
         url: 'https://apify.com/store',
-        token: '<YOUR_APIFY_TOKEN>'
+        token: '<YOUR_APIFY_API_TOKEN>'
     },
 });
 ```
 
 ```shell
-curl -X GET 'https://yh8jx5mCjfv69espW.apify.actor/?url=https://apify.com/store&wait_for=.ActorStoreItem-title&json_response=true&token=<YOUR_APIFY_TOKEN>'
+curl -X GET 'https://apify--super-scraper-api.apify.actor/?url=https://apify.com/store&wait_for=.ActorStoreItem-title&json_response=true&token=<YOUR_APIFY_API_TOKEN>'
 ```
 
-## Supported params
+## API parameters
 
-### ScrapingBee params
+The Actor supports most of the API parameters of [ScrapingBee](https://www.scrapingbee.com/documentation/),
+[ScrapingAnt](https://docs.scrapingant.com/request-response-format#available-parameters),
+and [ScraperAPI](https://docs.scraperapi.com/making-requests/customizing-requests).
+
+### ScrapingBee API parameters
 
 | parameter | description |
 | -------- | ------- |
@@ -77,14 +87,14 @@ curl -X GET 'https://yh8jx5mCjfv69espW.apify.actor/?url=https://apify.com/store&
 | `custom_google` | Use this option, if you want to scrape Google related websites (such as Google Shopping). Can be `true` or `false`, default `false`. |
 | `return_page_source` | Return HTML of the website that gets returned in the response (before any Javascript rendering), can be `true` or `false`, default: `false`. |
 | `transparent_status_code` | If response returns something other than a 200-299 or a 404, status code 500 will be returned. Set `true` to disable this behaviour and return the status code of the actual response. |
-| `timeout` | Set maximum number of ms to get response from this Actor. |  
+| `timeout` | Set maximum number of ms to get response from this Actor. |
 | `forward_headers` | If set to `true`, headers in a request to this Actor begining with prefix `Spb-` or `Ant-` will be forwarded to the target webpage alongside headers generated by us (prefix will be trimmed). |
 | `forward_headers_pure` | If set to `true`, only headers in a request to this Actor begining with prefix `Spb-` or `Ant-` will be forwarded to the target webpage (prefix will be trimmed). |
 | `device` | Can be either `desktop` (default) or `mobile`. |
 
 Currently, there are two ScrapingBee parameters that are not supported: `block_ads` and `session_id`.
 
-### ScrapingAnt params
+### ScrapingAnt API parameters
 
 | parameter | description |
 | -------- | ------- |
@@ -101,7 +111,7 @@ Currently, there are two ScrapingBee parameters that are not supported: `block_a
 Note about headers: Headers in a request to this Actor begining with prefix `Ant-` will be forwarded to the target webpage alongside headers generated by us (prefix will be trimmed). This can be changed using ScrapingBee's `forward_headers` and `forward_headers_pure` params that are described [here](#scrapingbee-params).
 
 
-### ScraperAPI params
+### ScraperAPI API parameters
 
 | parameter | description |
 | -------- | ------- |
@@ -127,7 +137,7 @@ Specify a set of rules to scrape data from the target webpage. There are two way
 - using `@`, we can access attribute of the selected element
 
 ```json
-{ 
+{
     "title": "h1",
     "link": "a@href"
 }
@@ -195,7 +205,7 @@ const resp = await axios.get('https://yh8jx5mCjfv69espW.apify.actor/', {
 console.log(resp.data);
 ```
 
-- part of the result: 
+- part of the result:
 ```json
 {
   "title": "Apify Blog",
