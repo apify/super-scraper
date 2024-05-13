@@ -4,7 +4,8 @@ The Super-Scraper Actor provides an REST API for scraping websites,
 in which you pass a URL of a web page and get back the fully-rendered HTML content.
 The Super-Scraper API is compatible with [ScrapingBee](https://www.scrapingbee.com/),
 [ScrapingAnt](https://scrapingant.com/),
-and [ScraperAPI](https://scraperapi.com/), and thus Actor can be used as drop-in replacement for these services.
+and [ScraperAPI](https://scraperapi.com/),
+and thus Actor can be used as a potentially cheaper drop-in replacement for these services.
 
 Main features:
 - Extract HTML from arbitrary URL using headless browser or raw HTTP requests
@@ -48,7 +49,10 @@ curl -X GET \
   --header 'Authorization: Bearer YOUR_APIFY_API_TOKEN'
 ```
 
-Note that instead of the `Authorization` HTTP header, you can also pass your Apify API token via the `token` query parameter to authenticate the requests:
+## Authentication
+
+The best way to authenticate is to pass your Apify API token using the `Authorization` HTTP header.
+Note that you can also pass the API token via the `token` query parameter to authenticate the requests:
 
 ### Node.js
 
