@@ -266,7 +266,7 @@ The results look like this:
 
 ### Custom JavaScript code
 
-Specify instructions in order to be executed one by one after opening the page.
+Use ScrapingBee's `js_scenario` parameter to specify instructions in order to be executed one by one after opening the page.
 Set `json_response` to `true` to get a full report of the executed instructions, the results of `evaluate` instructions will be added to the `evaluate_results` field.
 
 Example of clicking a button:
