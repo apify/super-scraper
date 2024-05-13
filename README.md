@@ -1,22 +1,30 @@
-# SuperScraper
+# Super-Scraper
 
-The Super-Scraper Actor provides an HTTP API for scraping websites,
-which is compatible with the API of [ScrapingBee](https://www.scrapingbee.com/documentation/),
-[ScrapingAnt](https://docs.scrapingant.com/request-response-format#available-parameters),
-and [ScraperAPI](https://docs.scraperapi.com/making-requests/customizing-requests).
-The Actor can be used as drop-in replacement for these services.
+The Super-Scraper Actor provides an REST API for scraping websites,
+in which you pass a URL of a web page and get back the fully-rendered HTML content.
+The Super-Scraper API is compatible with [ScrapingBee](https://www.scrapingbee.com/),
+[ScrapingAnt](https://scrapingant.com/),
+and [ScraperAPI](https://scraperapi.com/), and thus Actor can be used as drop-in replacement for these services.
 
-Note that the Actor uses a new experimental Standby mode, so it's not started the traditional way from Apify Console,
-but it's invoked via HTTP REST API provided directly by the Actor.
+Main features:
+- Extract HTML from arbitrary URL using headless browser or raw HTTP requests
+- Circumvent blocking using datacenter or residential proxies, and browser fingerprinting
+- Seemlessly scale to a large number of web pages as needed
+
+Note that Super-Scraper uses the new experimental Actor Standby mode, so it's not started the traditional way from Apify Console,
+but it's invoked via HTTP REST API provided directly by the Actor. See the examples below.
 
 ## Usage examples
 
 To run these examples, you need an Apify API token,
 which you can find under [Settings > Integrations](https://console.apify.com/account/integrations) in Apify Console.
+You can create an Apify account free of charge.
 
-### Node.js with Axios
+### Node.js
 
 ```ts
+import axios from 'axios';
+
 const resp = await axios.get('https://apify--super-scraper-api.apify.actor/', {
     params: {
         url: 'https://apify.com/store',
@@ -40,7 +48,9 @@ curl -X GET \
   --header 'Authorization: Bearer YOUR_APIFY_API_TOKEN'
 ```
 
-Instead of using the `Authorization` HTTP header, you can also pass your Apify API token via the `token` query parameter to authenticate the requests:
+Note that instead of the `Authorization` HTTP header, you can also pass your Apify API token via the `token` query parameter to authenticate the requests:
+
+### Node.js
 
 ```ts
 const resp = await axios.get('https://apify--super-scraper-api.apify.actor/', {
@@ -50,6 +60,8 @@ const resp = await axios.get('https://apify--super-scraper-api.apify.actor/', {
     },
 });
 ```
+
+### curl
 
 ```shell
 curl -X GET 'https://apify--super-scraper-api.apify.actor/?url=https://apify.com/store&wait_for=.ActorStoreItem-title&json_response=true&token=<YOUR_APIFY_API_TOKEN>'
@@ -175,7 +187,7 @@ Specify a set of rules to scrape data from the target webpage. There are two way
 }
 ```
 
-#### example:
+#### Example:
 - this scrapes all links from [Apify Blog](https://blog.apify.com/) along with their titles
 - axios:
 ```ts
@@ -222,7 +234,7 @@ console.log(resp.data);
       "title": "Universal web scrapers",
       "link": "https://apify.com/store/scrapers/universal-web-scrapers"
     },
-    ... more links
+    ...
   ]
 }
 ```
@@ -260,10 +272,10 @@ If one instructions fails, then the subsequent instructions will not be executed
 {
     "instructions": [
         { "click": "#button1" },
-        { "click": "#button2" },
+        { "click": "#button2" }
     ],
     "strict": false
-};
+}
 ```
 
 #### Supported instructions:
