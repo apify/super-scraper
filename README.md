@@ -72,6 +72,15 @@ const resp = await axios.get('https://apify--super-scraper-api.apify.actor/', {
 curl -X GET 'https://apify--super-scraper-api.apify.actor/?url=https://apify.com/store&wait_for=.ActorStoreItem-title&json_response=true&token=<YOUR_APIFY_API_TOKEN>'
 ```
 
+## Pricing
+
+When using the Super-Scraper Actor, you're charged based on your actual usage of Apify platform's computing, storage, and networking resources, which depends
+on the targets sites, your settings and API parameters, the load of your requests, and random network and target site conditions.
+From our testing, Super-Scraper is cheaper in many configurations than ScrapingBee, ScrapingAnt, and ScraperAPI, while in some other ones it's more expensive.
+The best way to see your price is to conduct a real-world test.
+
+TODO: can we add more details?
+
 ## API parameters
 
 ### ScrapingBee API parameters
