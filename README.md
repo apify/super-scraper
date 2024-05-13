@@ -20,7 +20,7 @@ but it's invoked via HTTP REST API provided directly by the Actor. See the examp
 
 To run these examples, you need an Apify API token,
 which you can find under [Settings > Integrations](https://console.apify.com/account/integrations) in Apify Console.
-You can create an Apify account free of charge.
+Creating an Apify account free of charge.
 
 ### Node.js
 
@@ -47,13 +47,13 @@ console.log(resp.data);
 ```shell
 curl -X GET \
   'https://apify--super-scraper-api.apify.actor/?url=https://apify.com/store&wait_for=.ActorStoreItem-title&screenshot=true&json_response=true' \
-  --header 'Authorization: Bearer YOUR_APIFY_API_TOKEN'
+  --header 'Authorization: Bearer <YOUR_APIFY_API_TOKEN>'
 ```
 
 ## Authentication
 
 The best way to authenticate is to pass your Apify API token using the `Authorization` HTTP header.
-Note that you can also pass the API token via the `token` query parameter to authenticate the requests:
+Alternatively, you can pass the API token via the `token` query parameter to authenticate the requests, which is more convenient for testing in a web browser.
 
 ### Node.js
 
@@ -83,7 +83,7 @@ The Super-Scraper Actor supports most of the API parameters of [ScrapingBee](htt
 | `url` | URL of the webpage to be scraped. **This parameter is required.**                                                                                                                                                                                                                                                             |
 | `json_response` | Return a verbose JSON response with additional details about the webpage. Can be either `true` or `false`, default is `false`.                                                                                                                                                                                                |
 | `extract_rules` | A stringified JSON containing custom rules how to extract data from the webpage.                                                                                                                                                                                                                                              |
-| `render_js` | Indicates that the webpage should be scraped using a headless browser, with dynamic content rendered. Can be `true` or `false`, default is `true`. This is same as ScrapingAnt's `browser`                                                                                                                                    |
+| `render_js` | Indicates that the webpage should be scraped using a headless browser, with dynamic content rendered. Can be `true` or `false`, default is `true`. This is equivalent to ScrapingAnt's `browser`.                                                                                                                             |
 | `screenshot` | Get screenshot of the browser's current viewport. If `json_response` is set to `true`, screenshot will be returned in the Base64 encoding. Can be `true` or `false`, default is `false`.                                                                                                                                      |
 | `screenshot_full_page` | Get screenshot of the full page. If `json_response` is set to `true`, screenshot will be returned in the Base64 encoding. Can be `true` or `false`, default is `false`.                                                                                                                                                       |
 | `screenshot_selector` | Get screenshot of the element specified by the selector. If `json_response` is set to `true`, screenshot will be returned in Base64. Must be a non-empty string.                                                                                                                                                              |
@@ -107,7 +107,7 @@ The Super-Scraper Actor supports most of the API parameters of [ScrapingBee](htt
 | `forward_headers_pure` | If set to `true`, only headers starting with prefix `Spb-` or `Ant-` will be forwarded to the target webpage (prefix will be trimmed), without any other HTTP headers from our side.                                                                                                                                          |
 | `device` | Can be either `desktop` (default) or `mobile`.                                                                                                                                                                                                                                                                                |
 
-ScrapingBee's API parameters `block_ads` and `session_id` are currently not supported, and they are ignored.
+ScrapingBee's API parameters `block_ads` and `session_id` are currently not supported.
 
 ### ScrapingAnt API parameters
 
@@ -116,7 +116,7 @@ The Super-Scraper Actor supports most of the API parameters of [ScrapingAnt](htt
 | parameter | description                                                                                                                                                                                                                                                                                                                                  |
 | -------- |----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `url` | URL of the webpage to be scraped. **This parameter is required.**                                                                                                                                                                                                                                                                            |
-| `browser` | Indicates that the webpage should be scraped using a headless browser, with dynamic content rendered. Can be `true` or `false`, default is `true`. This is same as ScrapingBee's `render_js`.                                                                                                                                                | (Same as `render_js`.)                                                                                                                                                    |
+| `browser` | Indicates that the webpage should be scraped using a headless browser, with dynamic content rendered. Can be `true` or `false`, default is `true`. This is equivalent as ScrapingBee's `render_js`.                                                                                                                                          | (Same as `render_js`.)                                                                                                                                                    |
 | `cookies` | Use custom cookies, must be in a string format: `cookie_name_1=cookie_value1;cookie_name_2=cookie_value_2`.                                                                                                                                                                                                                                  |
 | `js_snippet` | A Base64-encoded JavaScript code to be executed on the webpage. Will be treated as the [evaluate](#evaluate) instruction.                                                                                                                                                                                                                    |
 | `proxy_type` | Specify the type of proxies, which can be either `datacenter` (default) or `residential`. This is equivalent to setting ScrapingBee's `premium_proxy` or `steath_proxy` to `true`.                                                                                                                                                           |
@@ -127,11 +127,13 @@ The Super-Scraper Actor supports most of the API parameters of [ScrapingAnt](htt
 
 ScrapingAnt's API parameter `x-api-key` is not supported.
 
-Note that HTTP headers in a request to this Actor beginning with prefix `Ant-` will be forwarded to the target webpage alongside headers generated by us (prefix will be trimmed).
-This behavior can be changed using ScrapingBee's `forward_headers` and `forward_headers_pure` parameters described above.
+Note that HTTP headers in a request to this Actor beginning with prefix `Ant-` will be forwarded (without the prefix) to the target webpage alongside headers generated by the Actor.
+This behavior can be changed using ScrapingBee's `forward_headers` or `forward_headers_pure` parameters.
 
 
 ### ScraperAPI API parameters
+
+The Super-Scraper Actor supports most of the API parameters of [ScraperAPI](https://docs.scraperapi.com/making-requests/customizing-requests):
 
 | parameter | description                                                                                                                                                                                                                                                                                                                   |
 | -------- |-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -150,14 +152,16 @@ ScraperAPI's API parameters `session_number` and `autoparse` are currently not s
 
 ### Custom extraction rules
 
-TODO: This is used
+TODO: This relates to which service???
 
-You can specify a set of rules to scrape data from the target webpage. There are two ways how to create an extract rule: with shortened options or with full options.
+You can specify a set of rules to extract specific data from the target webpages. There are two ways how to create an extraction rule: with shortened options or with full options.
 
 #### Shortened options
 
 - value for the given key serves as a `selector`
 - using `@`, we can access attribute of the selected element
+
+##### Example:
 
 ```json
 {
@@ -166,17 +170,19 @@ You can specify a set of rules to scrape data from the target webpage. There are
 }
 ```
 
-#### Full options (+ nesting):
+#### Full options
 
-- `selector` is required,
-- `type` can be either `item` (default) or `list`,
-- `output` - how the result for these element(s) will look like, can be:
+- `selector` is required
+- `type` can be either `item` (default) or `list`
+- `output` indicates how the result for these element(s) will look like. It can be:
     - `text` (default option when `output` is omitted) - text of the element
     - `html` - HTML of the element
     - attribute name (starts with `@`, for example `@href`)
     - object with other extract rules for the given item (key + shortened or full options)
     - `table_json` or `table_array` to scrape a table in a json or array format
 - `clean` - relevant when having `text` as `output`, specifies whether the text of the element should be trimmed of whitespaces (can be `true` or `false`, default `true`)
+
+##### Example:
 
 ```json
 {
@@ -198,9 +204,9 @@ You can specify a set of rules to scrape data from the target webpage. There are
 }
 ```
 
-##### Example
+#### Example
 
-This example scrapes all links from [Apify Blog](https://blog.apify.com/) along with their titles.
+This example extracts all links from [Apify Blog](https://blog.apify.com/) along with their titles.
 
 ```ts
 const extractRules = {
@@ -222,7 +228,7 @@ const resp = await axios.get('https://apify--super-scraper-api.apify.actor/', {
         // verbose: true,
     },
     headers: {
-        Authorization: 'Bearer YOUR_APIFY_TOKEN',
+        Authorization: 'Bearer <YOUR_APIFY_API_TOKEN>',
     },
 });
 
@@ -246,8 +252,7 @@ The results look like this:
     {
       "title": "Universal web scrapers",
       "link": "https://apify.com/store/scrapers/universal-web-scrapers"
-    },
-    ...
+    }
   ]
 }
 ```
@@ -272,7 +277,7 @@ const resp = await axios.get('https://apify--super-scraper-api.apify.actor/', {
         js_scenario: JSON.stringify(instructions),
     },
     headers: {
-        Authorization: 'Bearer YOUR_APIFY_TOKEN',
+        Authorization: 'Bearer <YOUR_APIFY_API_TOKEN>',
     },
 });
 
@@ -293,7 +298,7 @@ If one instructions fails, then the subsequent instructions will not be executed
 }
 ```
 
-#### Supported instructions:
+#### Supported instructions
 
 ##### `wait`
 
