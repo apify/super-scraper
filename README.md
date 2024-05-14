@@ -1,17 +1,33 @@
-# Standby Crawler
+# Super-Scraper
 
-The Standby Crawler serves as a seamless and direct replacement for [ScrapingBee's](https://www.scrapingbee.com/documentation/), [ScrapingAnt's](https://docs.scrapingant.com/request-response-format#available-parameters), and [ScraperAPI's](https://docs.scraperapi.com/making-requests/customizing-requests) API on the Apify platform.
+The Super-Scraper Actor provides an REST API for scraping websites,
+in which you pass a URL of a web page and get back the fully-rendered HTML content.
+The Super-Scraper API is compatible with [ScrapingBee](https://www.scrapingbee.com/),
+[ScrapingAnt](https://scrapingant.com/),
+and [ScraperAPI](https://scraperapi.com/),
+and thus Actor can be used as a potentially cheaper drop-in replacement for these services.
 
-As this is a Standby Actor, you can't start it in a traditional way via the console. Instead, you interact with it by sending HTTP requests to its designated Standby URL. The Actor keeps running continuously, resulting in scraping results taking just a few seconds.
+Main features:
+- Extract HTML from arbitrary URL with a headless browser for dynamic content rendering.
+- Circumvent blocking using datacenter or residential proxies, and browser fingerprinting.
+- Seamlessly scale to a large number of web pages as needed.
+- Capture screenshots of the web pages.
 
-The first request following some period of inactivity might take longer, as the Actor needs to start up before it can respond.
+Note that Super-Scraper uses the new experimental Actor Standby mode, so it's not started the traditional way from Apify Console,
+but it's invoked via HTTP REST API provided directly by the Actor. See the examples below.
 
-Actor Standby url: https://yh8jx5mCjfv69espW.apify.actor/
+## Usage examples
 
-Example usage using axios:
+To run these examples, you need an Apify API token,
+which you can find under [Settings > Integrations](https://console.apify.com/account/integrations) in Apify Console.
+Creating an Apify account free of charge.
+
+### Node.js
 
 ```ts
-const resp = await axios.get('https://yh8jx5mCjfv69espW.apify.actor/', {
+import axios from 'axios';
+
+const resp = await axios.get('https://apify--super-scraper-api.apify.actor/', {
     params: {
         url: 'https://apify.com/store',
         wait_for: '.ActorStoreItem-title',
@@ -19,131 +35,161 @@ const resp = await axios.get('https://yh8jx5mCjfv69espW.apify.actor/', {
         screenshot: true,
     },
     headers: {
-        Authorization: 'Bearer <YOUR_APIFY_TOKEN>',
+        Authorization: 'Bearer <YOUR_APIFY_API_TOKEN>',
     },
 });
 
 console.log(resp.data);
 ```
 
-Example using curl:
+### curl
 
 ```shell
 curl -X GET \
-  'https://yh8jx5mCjfv69espW.apify.actor/?url=https://apify.com/store&wait_for=.ActorStoreItem-title&screenshot=true&json_response=true' \
-  --header 'Authorization: Bearer YOUR_APIFY_TOKEN'
+  'https://apify--super-scraper-api.apify.actor/?url=https://apify.com/store&wait_for=.ActorStoreItem-title&screenshot=true&json_response=true' \
+  --header 'Authorization: Bearer <YOUR_APIFY_API_TOKEN>'
 ```
 
-You can also add your Apify token as a query parameter to authenticate the requests:
+## Authentication
+
+The best way to authenticate is to pass your Apify API token using the `Authorization` HTTP header.
+Alternatively, you can pass the API token via the `token` query parameter to authenticate the requests, which is more convenient for testing in a web browser.
+
+### Node.js
 
 ```ts
-const resp = await axios.get('https://yh8jx5mCjfv69espW.apify.actor/', {
+const resp = await axios.get('https://apify--super-scraper-api.apify.actor/', {
     params: {
         url: 'https://apify.com/store',
-        token: '<YOUR_APIFY_TOKEN>'
+        token: '<YOUR_APIFY_API_TOKEN>'
     },
 });
 ```
 
+### curl
+
 ```shell
-curl -X GET 'https://yh8jx5mCjfv69espW.apify.actor/?url=https://apify.com/store&wait_for=.ActorStoreItem-title&json_response=true&token=<YOUR_APIFY_TOKEN>'
+curl -X GET 'https://apify--super-scraper-api.apify.actor/?url=https://apify.com/store&wait_for=.ActorStoreItem-title&json_response=true&token=<YOUR_APIFY_API_TOKEN>'
 ```
 
-## Supported params
+## Pricing
 
-### ScrapingBee params
+When using the Super-Scraper Actor, you're charged based on your actual usage of Apify platform's computing, storage, and networking resources, which depends
+on the targets sites, your settings and API parameters, the load of your requests, and random network and target site conditions.
+From our testing, Super-Scraper is cheaper in many configurations than ScrapingBee, ScrapingAnt, and ScraperAPI, while in some other ones it's more expensive.
+The best way to see your price is to conduct a real-world test.
 
-| parameter | description |
-| -------- | ------- |
-| `url` | URL of the webpage to be scraped, required parameter. |
-| `json_response` | Will return a verbose JSON response with additional details about the webpage. Can be either `true` or `false`, default `false`. |
-| `extract_rules` | Stringified JSON with custom rules how to extract data from the webpage. More [here](#extract-rules). |
-| `render_js` | Specify, if you want to scrape the webpage with or without using a headless browser, can be `true` or `false`, default `true`. |
-| `screenshot` | Get screenshot of the browser's current viewport. If `json_response` is set to `true`, screenshot will be returned in base64. Can be `true` or `false`, default `false`. |
-| `screenshot_full_page` | Get screenshot of the full page. If `json_response` is set to `true`, screenshot will be returned in base64. Can be `true` or `false`, default `false`. |
-| `screenshot_selector` | Get screenshot of the element specified by the selector. If `json_response` is set to `true`, screenshot will be returned in base64. Must be a non-empty `string`. |
-| `js_scenario` | Instructions that will be executed after loading the webpage. More [here](#js-scenario). |
-| `wait` | Specify a duration in ms that the browsers will wait after loading the page. |
-| `wait_for` | Specify a selector of an element for which the browser will wait after loading the page. |
-| `wait_browser` | Can be one of: `load`, `domcontentloaded`, `networkidle`. |
-| `block_resources` | Specify, if you want to block images and CSS. Can be `true` or `false`, default `true`. |
-| `window_width` | Specify width of the browser's viewport. |
-| `window_height` | Specify height of the browser's viewport. |
-| `cookies` | Use custom cookies, must be in a string format: `cookie_name_1=cookie_value1;cookie_name_2=cookie_value_2`. |
-| `own_proxy` | Use your own proxies in a format: `<protocol><username>:<password>@<host>:<port>`. |
-| `premium_proxy` | Use IP addresses assigned to homes and offices of actual users. Reduced probability of being blocked. |
-| `stealth_proxy` | Same as `premium_proxy`. |
-| `country_code` | Use IP addresses that are geolocated to the specified country by specifying a 2-letter country [code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements).  If using code other than `US`, `premium_proxy` must be set to `true`. |
-| `custom_google` | Use this option, if you want to scrape Google related websites (such as Google Shopping). Can be `true` or `false`, default `false`. |
-| `return_page_source` | Return HTML of the website that gets returned in the response (before any Javascript rendering), can be `true` or `false`, default: `false`. |
-| `transparent_status_code` | If response returns something other than a 200-299 or a 404, status code 500 will be returned. Set `true` to disable this behaviour and return the status code of the actual response. |
-| `timeout` | Set maximum number of ms to get response from this Actor. |  
-| `forward_headers` | If set to `true`, headers in a request to this Actor begining with prefix `Spb-` or `Ant-` will be forwarded to the target webpage alongside headers generated by us (prefix will be trimmed). |
-| `forward_headers_pure` | If set to `true`, only headers in a request to this Actor begining with prefix `Spb-` or `Ant-` will be forwarded to the target webpage (prefix will be trimmed). |
-| `device` | Can be either `desktop` (default) or `mobile`. |
+TODO: can we add more details?
 
-Currently, there are two ScrapingBee parameters that are not supported: `block_ads` and `session_id`.
+## API parameters
 
-### ScrapingAnt params
+### ScrapingBee API parameters
 
-| parameter | description |
-| -------- | ------- |
-| `url` | URL of the webpage to be scraped, required parameter. |
-| `browser` | Specify, if you want to scrape the webpage with or without using a headless browser, can be `true` or `false`, default `true`. (Same as `render_js`.) |
-| `cookies` | Use custom cookies, must be in a string format: `cookie_name_1=cookie_value1;cookie_name_2=cookie_value_2`. |
-| `js_snippet` | Base64 encoded JS code to be executed on the webpage. Will be treated as [evaluate](#evaluate) instruction. |
-| `proxy_type` | Specify the type of proxies, can be either `datacenter` (default) or `residential` (is equivalent to setting `premium_proxy` or `steath_proxy` to `true`). |
-| `wait_for_selector` | Specify a selector of an element for which the browser will wait after loading the page. (Same as `wait_for`.) |
-| `block_resource` | Specify one or more resources types you want to block. Can be repeated in the URL (e.g. `block_resource=image&block_resource=media`). Available options: `document`, `stylesheet`, `image`, `media`, `font`, `script`, `texttrack`, `xhr`, `fetch`, `eventsource`, `websocket`, `manifest`, `other`. |
-| `return_page_source` | Return HTML of the website that gets returned in the response (before any Javascript rendering), can be `true` or `false`, default: `false`. |
-| `proxy_country` | Use IP addresses that are geolocated to the specified country by specifying a 2-letter country [code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements).  If using code other than `US`, `proxy_type` must be set to `residential` (or `premium_proxy` set to `true`). |
+The Super-Scraper Actor supports most of the API parameters of [ScrapingBee](https://www.scrapingbee.com/documentation/):
 
-Note about headers: Headers in a request to this Actor begining with prefix `Ant-` will be forwarded to the target webpage alongside headers generated by us (prefix will be trimmed). This can be changed using ScrapingBee's `forward_headers` and `forward_headers_pure` params that are described [here](#scrapingbee-params).
+| parameter | description                                                                                                                                                                                                                                                                                                                   |
+| -------- |-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `url` | URL of the webpage to be scraped. **This parameter is required.**                                                                                                                                                                                                                                                             |
+| `json_response` | Return a verbose JSON response with additional details about the webpage. Can be either `true` or `false`, default is `false`.                                                                                                                                                                                                |
+| `extract_rules` | A stringified JSON containing custom rules how to extract data from the webpage.                                                                                                                                                                                                                                              |
+| `render_js` | Indicates that the webpage should be scraped using a headless browser, with dynamic content rendered. Can be `true` or `false`, default is `true`. This is equivalent to ScrapingAnt's `browser`.                                                                                                                             |
+| `screenshot` | Get screenshot of the browser's current viewport. If `json_response` is set to `true`, screenshot will be returned in the Base64 encoding. Can be `true` or `false`, default is `false`.                                                                                                                                      |
+| `screenshot_full_page` | Get screenshot of the full page. If `json_response` is set to `true`, screenshot will be returned in the Base64 encoding. Can be `true` or `false`, default is `false`.                                                                                                                                                       |
+| `screenshot_selector` | Get screenshot of the element specified by the selector. If `json_response` is set to `true`, screenshot will be returned in Base64. Must be a non-empty string.                                                                                                                                                              |
+| `js_scenario` | JavaScript instructions that will be executed after loading the webpage.                                                                                                                                                                                                                                                      |
+| `wait` | Specify a duration that the browser will wait after loading the page, in milliseconds.                                                                                                                                                                                                                                        |
+| `wait_for` | Specify a CSS selector of an element for which the browser will wait after loading the page.                                                                                                                                                                                                                                  |
+| `wait_browser` | Specify a browser event to wait for. Can be either `load`, `domcontentloaded`, or `networkidle`.                                                                                                                                                                                                                              |
+| `block_resources` | Specify that you want to block images and CSS. Can be `true` or `false`, default is `true`.                                                                                                                                                                                                                                   |
+| `window_width` | Specify the width of the browser's viewport, in pixels.                                                                                                                                                                                                                                                                       |
+| `window_height` | Specify the height of the browser's viewport, in pixels.                                                                                                                                                                                                                                                                      |
+| `cookies` | Custom cookies to use to fetch the web pages. This is useful for fetching webpage behing login. The cookies must be specified in a string format: `cookie_name_1=cookie_value1;cookie_name_2=cookie_value_2`.                                                                                                                 |
+| `own_proxy` | A custom proxy to be used for scraping, in the format `<protocol><username>:<password>@<host>:<port>`.                                                                                                                                                                                                                        |
+| `premium_proxy` | Use residential proxies to fetch the web content, in order to reduce the probability of being blocked. Can be either `true` or `false`, default is `false`.                                                                                                                                                                   |
+| `stealth_proxy` | Works same as `premium_proxy`.                                                                                                                                                                                                                                                                                                |
+| `country_code` | Use IP addresses that are geolocated in the specified country by specifying its [2-letter ISO code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements). When using code other than `US`, `premium_proxy` must be set to `true`. This is equivalent to setting ScrapingAnt's `proxy_country`. |
+| `custom_google` | Use this option if you want to scrape Google-related websites (such as Google Searach or Google Shopping). Can be `true` or `false`, default is `false`.                                                                                                                                                                      |
+| `return_page_source` | Return HTML of the webpage from the response before any dynamic JavaSript rendering. Can be `true` or `false`, default is `false`.                                                                                                                                                                                            |
+| `transparent_status_code` | By default, if target webpage responds with HTTP status code other than a 200-299 or a 404, the API will return a HTTP status code 500. Set this paremeter to `true` to disable this behavior and return the status code of the actual response.                                                                              |
+| `timeout` | Set maximum timeout for the response from this Actor, in milliseconds. The default is 140 000 ms.                                                                                                                                                                                                                             |
+| `forward_headers` | If set to `true`, HTTP headers starting with prefix `Spb-` or `Ant-` will be forwarded to the target webpage alongside headers generated by us (the prefix will be trimmed).                                                                                                                                                  |
+| `forward_headers_pure` | If set to `true`, only headers starting with prefix `Spb-` or `Ant-` will be forwarded to the target webpage (prefix will be trimmed), without any other HTTP headers from our side.                                                                                                                                          |
+| `device` | Can be either `desktop` (default) or `mobile`.                                                                                                                                                                                                                                                                                |
 
+ScrapingBee's API parameters `block_ads` and `session_id` are currently not supported.
 
-### ScraperAPI params
+### ScrapingAnt API parameters
 
-| parameter | description |
-| -------- | ------- |
-| `url` | URL of the webpage to be scraped, required parameter. |
-| `render` | Specify, if you want to scrape the webpage with or without using a headless browser, can be `true` or `false`, default `true`. (Same as `render_js`.) |
-| `wait_for_selector` | Specify a selector of an element for which the browser will wait after loading the page. (Same as `wait_for`.) |
-| `premium` | Use IP addresses assigned to homes and offices of actual users. Reduced probability of being blocked. (Same as `premium_proxy`.) |
-| `ultra_premium` | Same as `premium` |
-| `country_code` | Use IP addresses that are geolocated to the specified country by specifying a 2-letter country [code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements).  If using code other than `US`, `premium` must be set to `true`. |
-| `keep_headers` | All headers sent to this Actor will be forwarded to the target website (this will override already set headers). The `Authorization` header will be removed. |
-| `device_type` | Can be either `desktop` (default) or `mobile`. (Same as `device`.) |
-| `binary_target` | Specify, whether the target is a file. Can be `true` or `false`, default: `false`. Currently only supported when JS rendering is set to `false` (`render_js`, `browser`, `render`). |
+The Super-Scraper Actor supports most of the API parameters of [ScrapingAnt](https://docs.scrapingant.com/request-response-format#available-parameters):
 
-Currently, there are two ScraperAPI parameters that are not supported: `session_number` and  `autoparse`.
+| parameter | description                                                                                                                                                                                                                                                                                                                                  |
+| -------- |----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `url` | URL of the webpage to be scraped. **This parameter is required.**                                                                                                                                                                                                                                                                            |
+| `browser` | Indicates that the webpage should be scraped using a headless browser, with dynamic content rendered. Can be `true` or `false`, default is `true`. This is equivalent as ScrapingBee's `render_js`.                                                                                                                                          | (Same as `render_js`.)                                                                                                                                                    |
+| `cookies` | Use custom cookies, must be in a string format: `cookie_name_1=cookie_value1;cookie_name_2=cookie_value_2`.                                                                                                                                                                                                                                  |
+| `js_snippet` | A Base64-encoded JavaScript code to be executed on the webpage. Will be treated as the [evaluate](#evaluate) instruction.                                                                                                                                                                                                                    |
+| `proxy_type` | Specify the type of proxies, which can be either `datacenter` (default) or `residential`. This is equivalent to setting ScrapingBee's `premium_proxy` or `steath_proxy` to `true`.                                                                                                                                                           |
+| `wait_for_selector` | Specify a CSS selector of an element for which the browser will wait after loading the page. This is equivalent to setting ScrapingBee's `wait_for`.                                                                                                                                                                                         |
+| `block_resource` | Specify one or more resources types you want to block from being downloaded. The parameter can be repeated in the URL (e.g. `block_resource=image&block_resource=media`). Available options are: `document`, `stylesheet`, `image`, `media`, `font`, `script`, `texttrack`, `xhr`, `fetch`, `eventsource`, `websocket`, `manifest`, `other`. |
+| `return_page_source` | Return HTML of the webpage from the response before any dynamic JavaSript rendering. Can be `true` or `false`, default is `false`.                                                                                                                                                                                                           |
+| `proxy_country` | Use IP addresses that are geolocated in the specified country by specifying its [2-letter ISO code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements). When using code other than `US`, `premium_proxy` must be set to `true`. This is equivalent to setting ScrapingBee's `country_code`.                 |
+
+ScrapingAnt's API parameter `x-api-key` is not supported.
+
+Note that HTTP headers in a request to this Actor beginning with prefix `Ant-` will be forwarded (without the prefix) to the target webpage alongside headers generated by the Actor.
+This behavior can be changed using ScrapingBee's `forward_headers` or `forward_headers_pure` parameters.
 
 
-### Extract rules
+### ScraperAPI API parameters
 
-Specify a set of rules to scrape data from the target webpage. There are two ways how to create an extract rule: with shortened options or with full options:
+The Super-Scraper Actor supports most of the API parameters of [ScraperAPI](https://docs.scraperapi.com/making-requests/customizing-requests):
 
-#### shortened options:
+| parameter | description                                                                                                                                                                                                                                                                                                                   |
+| -------- |-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `url` | URL of the webpage to be scraped. **This parameter is required.**                                                                                                                                                                                                                                                             |
+| `render` | Specify, if you want to scrape the webpage with or without using a headless browser, can be `true` or `false`, default `true`. (Same as `render_js`.)                                                                                                                                                                         |
+| `wait_for_selector` | Specify a CSS selector of an element for which the browser will wait after loading the page. This is equivalent to setting ScrapingBee's `wait_for`.                                                                                                                                                                          |
+| `premium` | Use residential proxies to fetch the web content, in order to reduce the probability of being blocked. Can be either `true` or `false`, default is `false`. This is equivalent to setting ScrapingBee's `premium_proxy`.                                                                                                      |
+| `ultra_premium` | Same as `premium`.                                                                                                                                                                                                                                                                                                            |
+| `country_code` | Use IP addresses that are geolocated in the specified country by specifying its [2-letter ISO code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements). When using code other than `US`, `premium_proxy` must be set to `true`. This is equivalent to setting ScrapingAnt's `proxy_country`. |
+| `keep_headers` | If `true`, then all headers sent to this Actor will be forwarded to the target website. The `Authorization` header will be removed.                                                                                                                                                                                           |
+| `device_type` | Can be either `desktop` (default) or `mobile`. This is equivalent to setting ScrapingBees's `device`.                                                                                                                                                                                                                         |
+| `binary_target` | Specify whether the target is a file. Can be `true` or `false`, default is `false`. Currently only supported when JS rendering is set to `false` via the `render_js`, `browser`, or `render` parameters.                                                                                                                      |
+
+ScraperAPI's API parameters `session_number` and `autoparse` are currently not supported, and they are ignored.
+
+
+### Custom extraction rules
+
+Using ScrapingBee's `extract_rules` parameter, you can specify a set of rules to extract specific data from the target webpages. There are two ways how to create an extraction rule: with shortened options or with full options.
+
+#### Shortened options
+
 - value for the given key serves as a `selector`
 - using `@`, we can access attribute of the selected element
 
+##### Example:
+
 ```json
-{ 
+{
     "title": "h1",
     "link": "a@href"
 }
 ```
 
-#### full options (+ nesting):
+#### Full options
 
-- `selector` is required,
-- `type` can be either `item` (default) or `list`,
-- `output` - how the result for these element(s) will look like, can be:
+- `selector` is required
+- `type` can be either `item` (default) or `list`
+- `output` indicates how the result for these element(s) will look like. It can be:
     - `text` (default option when `output` is omitted) - text of the element
     - `html` - HTML of the element
     - attribute name (starts with `@`, for example `@href`)
     - object with other extract rules for the given item (key + shortened or full options)
     - `table_json` or `table_array` to scrape a table in a json or array format
 - `clean` - relevant when having `text` as `output`, specifies whether the text of the element should be trimmed of whitespaces (can be `true` or `false`, default `true`)
+
+##### Example:
 
 ```json
 {
@@ -165,9 +211,10 @@ Specify a set of rules to scrape data from the target webpage. There are two way
 }
 ```
 
-#### example:
-- this scrapes all links from [Apify Blog](https://blog.apify.com/) along with their titles
-- axios:
+#### Example
+
+This example extracts all links from [Apify Blog](https://blog.apify.com/) along with their titles.
+
 ```ts
 const extractRules = {
     title: 'h1',
@@ -181,21 +228,22 @@ const extractRules = {
     },
 };
 
-const resp = await axios.get('https://yh8jx5mCjfv69espW.apify.actor/', {
+const resp = await axios.get('https://apify--super-scraper-api.apify.actor/', {
     params: {
         url: 'https://blog.apify.com/',
         extract_rules: JSON.stringify(extractRules),
         // verbose: true,
     },
     headers: {
-        Authorization: 'Bearer YOUR_APIFY_TOKEN',
+        Authorization: 'Bearer <YOUR_APIFY_API_TOKEN>',
     },
 });
 
 console.log(resp.data);
 ```
 
-- part of the result: 
+The results look like this:
+
 ```json
 {
   "title": "Apify Blog",
@@ -211,17 +259,18 @@ console.log(resp.data);
     {
       "title": "Universal web scrapers",
       "link": "https://apify.com/store/scrapers/universal-web-scrapers"
-    },
-    ... more links
+    }
   ]
 }
 ```
 
-### JS Scenario
+### Custom JavaScript code
 
-Specify instructions in order to be executed one by one after opening the page. Set `json_response` to `true` to get a full report of the executed instructions, the results of `evaluate` instructions will be added to the `evaluate_results` field.
+Use ScrapingBee's `js_scenario` parameter to specify instructions in order to be executed one by one after opening the page.
+Set `json_response` to `true` to get a full report of the executed instructions, the results of `evaluate` instructions will be added to the `evaluate_results` field.
 
-- example for clicking a button:
+Example of clicking a button:
+
 ```ts
 const instructions = {
     instructions: [
@@ -229,13 +278,13 @@ const instructions = {
     ],
 };
 
-const resp = await axios.get('https://yh8jx5mCjfv69espW.apify.actor/', {
+const resp = await axios.get('https://apify--super-scraper-api.apify.actor/', {
     params: {
-        url: 'some url',
+        url: 'https://www.example.com',
         js_scenario: JSON.stringify(instructions),
     },
     headers: {
-        Authorization: 'Bearer YOUR_APIFY_TOKEN',
+        Authorization: 'Bearer <YOUR_APIFY_API_TOKEN>',
     },
 });
 
@@ -244,50 +293,50 @@ console.log(resp.data);
 
 #### Strict mode
 
-If one instructions fails, then the subsequent instructions will not be executed. To disable this, you can optionally set `strict` to `false` (which is `true` by default):
+If one instructions fails, then the subsequent instructions will not be executed. To disable this behavior, you can optionally set `strict` to `false` (by default it's `true`):
 
 ```json
 {
     "instructions": [
         { "click": "#button1" },
-        { "click": "#button2" },
+        { "click": "#button2" }
     ],
     "strict": false
-};
+}
 ```
 
-#### Supported instructions:
+#### Supported instructions
 
-##### wait
+##### `wait`
 
 - wait for some time specified in ms
 - example: `{"wait": 10000}`
 
-##### wait_for
+##### `wait_for`
 
 - wait for an element specified by selector
 - example `{"wait_for": "#element"}`
 
-##### click
+##### `click`
 
 - click on an element specified by the selector
 - example `{"click": "#button"}`
 
-##### wait_for_and_click
+##### `wait_for_and_click`
 - combination of previous two
 - example `{"wait_for_and_click": "#button"}`
 
-##### scroll x/y
+##### `scroll_x` and `scroll_y`
 
 - scroll specified number of pixels horizontally or vertically
 - example `{"scroll_y": 1000}` or `{"scroll_x": 1000}`
 
-##### fill
+##### `fill`
 
 - specify selector of the input element and the value you want to fill
 - example `{"fill": ["input_1", "value_1"]}`
 
-##### evaluate
+##### `evaluate`
 
 - evaluate custom javascript on the webpage
 - text/number/object results will be saved in `evaluate_results` field
