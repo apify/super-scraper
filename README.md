@@ -66,6 +66,7 @@ const resp = await axios.get('https://apify--super-scraper-api.apify.actor/', {
 });
 ```
 
+
 ### curl
 
 ```shell
@@ -75,11 +76,18 @@ curl -X GET 'https://apify--super-scraper-api.apify.actor/?url=https://apify.com
 ## Pricing
 
 When using the Super-Scraper Actor, you're charged based on your actual usage of Apify platform's computing, storage, and networking resources, which depends
-on the targets sites, your settings and API parameters, the load of your requests, and random network and target site conditions.
+on the target sites, your settings and API parameters, the load of your requests, and random network and target site conditions.
 From our testing, Super-Scraper is cheaper in many configurations than ScrapingBee, ScrapingAnt, and ScraperAPI, while in some other ones it's more expensive.
 The best way to see your price is to conduct a real-world test.
 
-TODO: can we add more details?
+An example cost on a free account (the pricing is cheaper on higher plans) for 30 one-by-one requests plus 50 batched requests test:
+
+| parameters | cost estimate  
+| ------------- |-----------------------------------|
+| no `render_js` + basic proxy |  $1/1000 requests
+| no `render_js` + premium (residential) proxy | $2/1000 requests
+| `render_js` + basic proxy | $4/1000 requests
+| `render_js` + premium (residential) proxy | $5/1000 requests
 
 ## API parameters
 
@@ -293,7 +301,7 @@ console.log(resp.data);
 
 #### Strict mode
 
-If one instructions fails, then the subsequent instructions will not be executed. To disable this behavior, you can optionally set `strict` to `false` (by default it's `true`):
+If one instruction fails, then the subsequent instructions will not be executed. To disable this behavior, you can optionally set `strict` to `false` (by default it's `true`):
 
 ```json
 {
