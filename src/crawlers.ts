@@ -51,6 +51,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 enable: false,
             },
         },
+        requestHandlerTimeoutSecs: 3600,
         sessionPoolOptions: {
             persistenceOptions: {
                 enable: false,

@@ -291,20 +291,24 @@ const server = createServer(async (req, res) => {
             finalRequest.headers = headersToForward;
         }
 
-        // TODO -> do we want some default timeout for requests? Scrapingbee has 140 000 ms
-        // also, do we want to limit the timeout? Scrapingbee's timeout must be between 1000 and 140000
+        let timeout = 140000;
         if (params[ScrapingBee.timeout]) {
             const timeoutNumber = Number.parseInt(params[ScrapingBee.timeout] as string, 10);
             if (Number.isNaN(timeoutNumber)) {
                 throw new UserInputError('Parameter timeout must be a number');
             }
-            setTimeout(() => {
-                const timeoutErrorMessage = {
-                    errorMessage: `Response timed out.`,
-                };
-                sendErrorResponseById(finalRequest.uniqueKey!, JSON.stringify(timeoutErrorMessage));
-            }, timeoutNumber);
+            if (timeoutNumber < 1000 || timeoutNumber > 3600000) {
+                throw new UserInputError('Parameter timeout must be between 1000 and 3600000 ms (1 hour)');
+            }
+            timeout = timeoutNumber;
         }
+
+        setTimeout(() => {
+            const timeoutErrorMessage = {
+                errorMessage: `Response timed out.`,
+            };
+            sendErrorResponseById(finalRequest.uniqueKey!, JSON.stringify(timeoutErrorMessage));
+        }, timeout);
 
         const crawlerOptions: CrawlerOptions = {
             proxyConfigurationOptions: createProxyOptions(params),
