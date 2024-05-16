@@ -154,19 +154,23 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
             const xhr: XHRRequestData[] = [];
             if (renderJs && jsonResponse) {
                 page.on('response', async (resp) => {
-                    const req = resp.request();
-                    if (req.resourceType() !== 'xhr') {
-                        return;
-                    }
+                    try {
+                        const req = resp.request();
+                        if (req.resourceType() !== 'xhr') {
+                            return;
+                        }
 
-                    xhr.push({
-                        url: req.url(),
-                        statusCode: resp.status(),
-                        method: req.method(),
-                        requestHeaders: req.headers(),
-                        headers: resp.headers(),
-                        body: (await resp.body()).toString(),
-                    });
+                        xhr.push({
+                            url: req.url(),
+                            statusCode: resp.status(),
+                            method: req.method(),
+                            requestHeaders: req.headers(),
+                            headers: resp.headers(),
+                            body: (await resp.body()).toString(),
+                        });
+                    } catch (e) {
+                        console.log((e as Error).message);
+                    }
                 });
             }
 
