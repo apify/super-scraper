@@ -1,26 +1,27 @@
-# Super-Scraper
+# SuperScraper
 
-The Super-Scraper Actor provides an REST API for scraping websites,
-in which you pass a URL of a web page and get back the fully-rendered HTML content.
-The Super-Scraper API is compatible with [ScrapingBee](https://www.scrapingbee.com/),
+SuperScraper is an Actor that provides a REST API for scraping websites.
+Just pass a URL of a web page and get back the fully-rendered HTML content.
+The SuperScraper API is compatible with [ScrapingBee](https://www.scrapingbee.com/),
 [ScrapingAnt](https://scrapingant.com/),
-and [ScraperAPI](https://scraperapi.com/),
-and thus Actor can be used as a potentially cheaper drop-in replacement for these services.
+and [ScraperAPI](https://scraperapi.com/).
+That means the Actor can be used as a potentially cheaper drop-in replacement for these services.
 
 Main features:
-- Extract HTML from arbitrary URL with a headless browser for dynamic content rendering.
-- Circumvent blocking using datacenter or residential proxies, and browser fingerprinting.
+- Extract HTML from arbitrary URLs with a headless browser for dynamic content rendering.
+- Circumvent blocking using datacenter or residential proxies, as well as browser fingerprinting.
 - Seamlessly scale to a large number of web pages as needed.
 - Capture screenshots of the web pages.
 
-Note that Super-Scraper uses the new experimental Actor Standby mode, so it's not started the traditional way from Apify Console,
-but it's invoked via HTTP REST API provided directly by the Actor. See the examples below.
+Note that SuperScraper uses the new experimental Actor Standby mode, so it's not started the traditional way from Apify Console.
+Instead, it's invoked via the HTTP REST API provided directly by the Actor. See the examples below.
 
 ## Usage examples
 
 To run these examples, you need an Apify API token,
 which you can find under [Settings > Integrations](https://console.apify.com/account/integrations) in Apify Console.
-Creating an Apify account free of charge.
+
+You can create an Apify account free of charge.
 
 ### Node.js
 
@@ -75,9 +76,12 @@ curl -X GET 'https://apify--super-scraper-api.apify.actor/?url=https://apify.com
 
 ## Pricing
 
-When using the Super-Scraper Actor, you're charged based on your actual usage of Apify platform's computing, storage, and networking resources, which depends
-on the target sites, your settings and API parameters, the load of your requests, and random network and target site conditions.
-From our testing, Super-Scraper is cheaper in many configurations than ScrapingBee, ScrapingAnt, and ScraperAPI, while in some other ones it's more expensive.
+When using SuperScraper, you're charged based on your actual usage of the Apify platform's computing, storage, and networking resources. 
+
+Cost depends on the target sites, your settings and API parameters, the load of your requests, and random network and target site conditions.
+
+From our testing, SuperScraper is cheaper than ScrapingBee, ScrapingAnt, and ScraperAPI in many configurations, while in some others, it's more expensive.
+
 The best way to see your price is to conduct a real-world test.
 
 An example cost on a free account (the pricing is cheaper on higher plans) for 30 one-by-one requests plus 50 batched requests test:
@@ -93,7 +97,7 @@ An example cost on a free account (the pricing is cheaper on higher plans) for 3
 
 ### ScrapingBee API parameters
 
-The Super-Scraper Actor supports most of the API parameters of [ScrapingBee](https://www.scrapingbee.com/documentation/):
+SuperScraper supports most of the API parameters of [ScrapingBee](https://www.scrapingbee.com/documentation/):
 
 | parameter | description                                                                                                                                                                                                                                                                                                                   |
 | -------- |-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -128,7 +132,7 @@ ScrapingBee's API parameters `block_ads` and `session_id` are currently not supp
 
 ### ScrapingAnt API parameters
 
-The Super-Scraper Actor supports most of the API parameters of [ScrapingAnt](https://docs.scrapingant.com/request-response-format#available-parameters):
+SuperScraper supports most of the API parameters of [ScrapingAnt](https://docs.scrapingant.com/request-response-format#available-parameters):
 
 | parameter | description                                                                                                                                                                                                                                                                                                                                  |
 | -------- |----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -169,7 +173,7 @@ ScraperAPI's API parameters `session_number` and `autoparse` are currently not s
 
 ### Custom extraction rules
 
-Using ScrapingBee's `extract_rules` parameter, you can specify a set of rules to extract specific data from the target webpages. There are two ways how to create an extraction rule: with shortened options or with full options.
+Using ScrapingBee's `extract_rules` parameter, you can specify a set of rules to extract specific data from the target web pages. You can create an extraction rule in one of two ways: with shortened options, or with full options.
 
 #### Shortened options
 
@@ -275,6 +279,7 @@ The results look like this:
 ### Custom JavaScript code
 
 Use ScrapingBee's `js_scenario` parameter to specify instructions in order to be executed one by one after opening the page.
+
 Set `json_response` to `true` to get a full report of the executed instructions, the results of `evaluate` instructions will be added to the `evaluate_results` field.
 
 Example of clicking a button:
@@ -322,7 +327,7 @@ If one instruction fails, then the subsequent instructions will not be executed.
 
 ##### `wait_for`
 
-- wait for an element specified by selector
+- wait for an element specified by the selector
 - example `{"wait_for": "#element"}`
 
 ##### `click`
@@ -336,16 +341,16 @@ If one instruction fails, then the subsequent instructions will not be executed.
 
 ##### `scroll_x` and `scroll_y`
 
-- scroll specified number of pixels horizontally or vertically
+- scroll a specified number of pixels horizontally or vertically
 - example `{"scroll_y": 1000}` or `{"scroll_x": 1000}`
 
 ##### `fill`
 
-- specify selector of the input element and the value you want to fill
+- specify a selector of the input element and the value you want to fill
 - example `{"fill": ["input_1", "value_1"]}`
 
 ##### `evaluate`
 
 - evaluate custom javascript on the webpage
-- text/number/object results will be saved in `evaluate_results` field
+- text/number/object results will be saved in the `evaluate_results` field
 - example `{"evaluate":"document.querySelectorAll('a').length"}`
