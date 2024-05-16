@@ -8,7 +8,7 @@ and [ScraperAPI](https://scraperapi.com/).
 That means the Actor can be used as a potentially cheaper drop-in replacement for these services.
 
 Main features:
-- Extract HTML from arbitrary URsL with a headless browser for dynamic content rendering.
+- Extract HTML from arbitrary URLs with a headless browser for dynamic content rendering.
 - Circumvent blocking using datacenter or residential proxies, as well as browser fingerprinting.
 - Seamlessly scale to a large number of web pages as needed.
 - Capture screenshots of the web pages.
