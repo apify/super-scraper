@@ -23,7 +23,7 @@ const pushLogData = async (timeMeasures: TimeMeasure[], data: Record<string, unk
         time: Date.now(),
     });
     const relativeMeasures = transformTimeMeasuresToRelative(timeMeasures);
-    log.info(`Response sent (${relativeMeasures.at(-1)}) ${data.inputtedUrl}`, { ...relativeMeasures });
+    log.info(`Response sent (${relativeMeasures.at(-1)?.time} ms) ${data.inputtedUrl}`, { ...relativeMeasures });
     await Actor.pushData({
         ...data,
         measures: relativeMeasures,

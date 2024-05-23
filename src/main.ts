@@ -46,22 +46,18 @@ const createProxyOptions = (params: ParsedUrlQuery) => {
         return proxyOptions;
     }
 
-    const usePremium = params[ScrapingBee.premiumProxy] === 'true'
-        || params[ScrapingBee.stealthProxy] === 'true'
-        || proxyType === 'residential'
-        || params[ScraperApi.premium] === 'true'
-        || params[ScraperApi.ultraPremium] === 'true';
+    const usePremium = params[ScrapingBee.premiumProxy] === 'true' || proxyType === 'residential';
     if (usePremium) {
         proxyOptions.groups = ['RESIDENTIAL'];
     }
 
-    if (params[ScrapingBee.countryCode] || params[ScrapingAnt.proxyCountry]) {
-        const countryCode = ((params[ScrapingBee.countryCode] || params[ScrapingAnt.proxyCountry]) as string).toUpperCase();
+    if (params[ScrapingBee.countryCode]) {
+        const countryCode = (params[ScrapingBee.countryCode] as string).toUpperCase();
         if (countryCode.length !== 2) {
-            throw new UserInputError('Parameter country_code must be a string of length 2');
+            throw new UserInputError('Parameter for country code must be a string of length 2');
         }
         if (!usePremium && countryCode !== 'US') {
-            throw new UserInputError('Parameter country_code must be used with premium_proxy or stealth_proxy set to true when using non-US country');
+            throw new UserInputError('Parameter for country code must be used with premium proxies when using non-US country');
         }
         proxyOptions.countryCode = countryCode;
     }
@@ -70,10 +66,9 @@ const createProxyOptions = (params: ParsedUrlQuery) => {
 
 const server = createServer(async (req, res) => {
     const requestRecieved = Date.now();
-    if (req.method === 'HEAD') {
-        return;
+    if (req.method !== 'HEAD') {
+        log.info(`Request received: ${req.method} ${req.url}`);
     }
-    log.info(`Request received: ${req.method} ${req.url}`);
     try {
         const params = parseParameters(req.url!);
 
@@ -89,8 +84,8 @@ const server = createServer(async (req, res) => {
         }
 
         let selectedDevice: 'desktop' | 'mobile' = 'desktop';
-        if (params[ScrapingBee.device] || params[ScraperApi.deviceType]) {
-            const device = (params[ScrapingBee.device] || params[ScraperApi.deviceType]) as string;
+        if (params[ScrapingBee.device]) {
+            const device = params[ScrapingBee.device] as string;
             if (device === 'mobile') {
                 selectedDevice = 'mobile';
             }
@@ -126,8 +121,8 @@ const server = createServer(async (req, res) => {
             }
         }
 
-        if (renderJs && (params[ScrapingBee.waitFor] || params[ScrapingAnt.waitForSelector])) {
-            const waitForSelector = params[ScrapingBee.waitFor] || params[ScrapingAnt.waitForSelector];
+        if (renderJs && (params[ScrapingBee.waitFor])) {
+            const waitForSelector = params[ScrapingBee.waitFor];
             if (typeof waitForSelector !== 'string' || !waitForSelector.length) {
                 throw new UserInputError('Non-empty selector expected for wait_for and wait_for_selector parameters');
             } else {
@@ -241,14 +236,14 @@ const server = createServer(async (req, res) => {
             },
         };
 
-        if (params[ScrapingBee.forwardHeaders] === 'true' || params[ScrapingBee.forwardHeadersPure] === 'true' || params[ScraperApi.keepHeaders] !== 'true') {
+        // headers with ant/spb prefixes
+        if (params[ScrapingBee.forwardHeaders] === 'true' || params[ScrapingBee.forwardHeadersPure] === 'true') {
             const reqHeaders = req.headers;
             const headersToForward: Record<string, string> = {};
             for (const headerKey of Object.keys(reqHeaders)) {
                 if (headerKey.startsWith('spb-') || headerKey.startsWith('ant-')) {
                     const withoutPrefixKey = headerKey.slice(4);
 
-                    // scraping bee ingores these
                     const skippedHeaders = ['cookie', 'set-cookie', 'host'];
                     if (skippedHeaders.includes(withoutPrefixKey)) {
                         continue;
@@ -277,10 +272,7 @@ const server = createServer(async (req, res) => {
             }
         }
 
-        if (params[ScrapingBee.cookies]) {
-            finalRequest.headers!.Cookie = params[ScrapingBee.cookies] as string;
-        }
-
+        // all headers
         if (params[ScraperApi.keepHeaders] === 'true') {
             const reqHeaders = req.headers;
             const headersToForward: Record<string, string> = {};
@@ -291,6 +283,10 @@ const server = createServer(async (req, res) => {
                 headersToForward[key] = val as string;
             }
             finalRequest.headers = headersToForward;
+        }
+
+        if (params[ScrapingBee.cookies]) {
+            finalRequest.headers!.Cookie = params[ScrapingBee.cookies] as string;
         }
 
         let timeout = 140000;
