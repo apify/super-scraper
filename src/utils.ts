@@ -23,7 +23,7 @@ export const transformTimeMeasuresToRelative = (timeMeasures: TimeMeasure[]): Ti
 
 // eslint-disable-next-line max-len
 const validResources = ['document', 'stylesheet', 'image', 'media', 'font', 'script', 'texttrack', 'xhr', 'fetch', 'eventsource', 'websocket', 'manifest', 'other'];
-export const isValidResourceType = (resource: string) => {
+const isValidResourceType = (resource: string) => {
     return validResources.includes(resource);
 };
 
