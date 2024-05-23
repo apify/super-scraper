@@ -23,7 +23,7 @@ const pushLogData = async (timeMeasures: TimeMeasure[], data: Record<string, unk
         time: Date.now(),
     });
     const relativeMeasures = transformTimeMeasuresToRelative(timeMeasures);
-    log.info(`Measures for ${data.inputtedUrl}`, { ...relativeMeasures });
+    log.info(`Response sent (${relativeMeasures.at(-1)}) ${data.inputtedUrl}`, { ...relativeMeasures });
     await Actor.pushData({
         ...data,
         measures: relativeMeasures,
@@ -31,8 +31,6 @@ const pushLogData = async (timeMeasures: TimeMeasure[], data: Record<string, unk
 };
 
 export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEFAULT_CRAWLER_OPTIONS) => {
-    log.info('Creating a new crawler', crawlerOptions);
-
     const client = new MemoryStorage();
     const queue = await RequestQueue.open(undefined, { storageClient: client });
 

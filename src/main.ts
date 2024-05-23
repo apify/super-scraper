@@ -1,7 +1,6 @@
 import { Actor, ProxyConfigurationOptions, log } from 'apify';
 import { RequestOptions } from 'crawlee';
 import { createServer } from 'http';
-import { parse } from 'querystring';
 import { v4 as uuidv4 } from 'uuid';
 import type { ParsedUrlQuery } from 'querystring';
 import { HeaderGenerator } from 'header-generator';
@@ -11,7 +10,7 @@ import { validateAndTransformExtractRules } from './extract_rules_utils.js';
 import { parseAndValidateInstructions } from './instructions_utils.js';
 import { addTimeoutToAllResponses, sendErrorResponseById } from './responses.js';
 import { ScraperApi, ScrapingAnt, ScrapingBee } from './params.js';
-import { isValidResourceType } from './utils.js';
+import { isValidResourceType, parseParameters } from './utils.js';
 import { UserInputError } from './errors.js';
 
 await Actor.init();
@@ -71,9 +70,12 @@ const createProxyOptions = (params: ParsedUrlQuery) => {
 
 const server = createServer(async (req, res) => {
     const requestRecieved = Date.now();
-    log.info(`URL: ${req.method} ${req.url}`);
+    if (req.method === 'HEAD') {
+        return;
+    }
+    log.info(`Request received: ${req.method} ${req.url}`);
     try {
-        const params = parse(req.url!.slice(2));
+        const params = parseParameters(req.url!);
 
         if (!params[ScrapingBee.url] || !params[ScrapingBee.url].length) {
             throw new UserInputError('Parameter url is either missing or empty');
@@ -327,7 +329,7 @@ const server = createServer(async (req, res) => {
 
 const port = Actor.isAtHome() ? process.env.ACTOR_STANDBY_PORT : 8080;
 server.listen(port, async () => {
-    log.info('Stand-by Actor is listening');
+    log.info('SuperScraper is listening for user requests');
 
     // Pre-create common crawlers because crawler init can take about 1 sec
     await Promise.all([
