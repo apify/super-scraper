@@ -48,3 +48,11 @@ export enum ScraperApi {
     deviceType = 'device_type',
     ultraPremium = 'ultra_premium',
 }
+
+export const EquivalentParameters = {
+    [ScrapingBee.device]: [ScrapingBee.device, ScraperApi.deviceType],
+    [ScrapingBee.renderJs]: [ScrapingAnt.browser, ScraperApi.render],
+    [ScrapingBee.waitFor]: [ScrapingAnt.waitForSelector],
+    [ScrapingBee.premiumProxy]: [ScrapingBee.stealthProxy, ScraperApi.premium, ScraperApi.ultraPremium],
+    [ScrapingBee.countryCode]: [ScrapingAnt.proxyCountry],
+};
