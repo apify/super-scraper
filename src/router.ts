@@ -1,11 +1,11 @@
-import { createPlaywrightRouter } from 'crawlee';
+import { createPlaywrightRouter, log } from 'crawlee';
 import { CheerioAPI, load } from 'cheerio';
 import { Label } from './const.js';
 import { FullJsScenarioReport, IFrameData, TimeMeasure, UserData, VerboseResult, XHRRequestData } from './types.js';
 import { performInstructionsAndGenerateReport } from './instructions_utils.js';
 import { sendSuccResponseById } from './responses.js';
-import { pushLogData } from './crawlers.js';
 import { scrapeBasedOnExtractRules } from './extract_rules_utils.js';
+import { pushLogData } from './utils.js';
 
 export const router = createPlaywrightRouter();
 
@@ -54,7 +54,7 @@ router.addHandler<UserData>(Label.BROWSER, async ({ request, page, response, par
                     body: (await resp.body()).toString(),
                 });
             } catch (e) {
-                console.log((e as Error).message);
+                log.warning((e as Error).message);
             }
         });
     }

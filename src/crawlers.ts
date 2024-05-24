@@ -1,33 +1,17 @@
-/* eslint-disable max-len */
 import { Actor, RequestQueue, log } from 'apify';
 import { PlaywrightCrawler } from 'crawlee';
 import type { PlaywrightCrawlingContext, RequestOptions, AutoscaledPoolOptions } from 'crawlee';
-import { CheerioAPI, load } from 'cheerio';
 import { MemoryStorage } from '@crawlee/memory-storage';
 import { ServerResponse } from 'http';
-import { TimeMeasure, UserData, VerboseResult, CrawlerOptions, IFrameData, XHRRequestData, FullJsScenarioReport } from './types.js';
-import { addResponse, sendErrorResponseById, sendSuccResponseById } from './responses.js';
-import { scrapeBasedOnExtractRules } from './extract_rules_utils.js';
-import { transformTimeMeasuresToRelative } from './utils.js';
-import { performInstructionsAndGenerateReport } from './instructions_utils.js';
+import { TimeMeasure, UserData, VerboseResult, CrawlerOptions } from './types.js';
+import { addResponse, sendErrorResponseById } from './responses.js';
+import { router } from './router.js';
+import { pushLogData } from './utils.js';
 
 const crawlers = new Map<string, PlaywrightCrawler>();
 
 export const DEFAULT_CRAWLER_OPTIONS: CrawlerOptions = {
     proxyConfigurationOptions: {},
-};
-
-const pushLogData = async (timeMeasures: TimeMeasure[], data: Record<string, unknown>, failed = false) => {
-    timeMeasures.push({
-        event: failed ? 'failed request' : 'handler end',
-        time: Date.now(),
-    });
-    const relativeMeasures = transformTimeMeasuresToRelative(timeMeasures);
-    log.info(`Response sent (${relativeMeasures.at(-1)?.time} ms) ${data.inputtedUrl}`, { ...relativeMeasures });
-    await Actor.pushData({
-        ...data,
-        measures: relativeMeasures,
-    });
 };
 
 export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEFAULT_CRAWLER_OPTIONS) => {
@@ -72,7 +56,16 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
             }
         },
         failedRequestHandler: async ({ request, response, page }, err) => {
-            const { requestDetails, jsonResponse, inputtedUrl, parsedInputtedParams, timeMeasures, transparentStatusCode, nonbrowserRequestStatus } = request.userData as UserData;
+            const {
+                requestDetails,
+                jsonResponse,
+                inputtedUrl,
+                parsedInputtedParams,
+                timeMeasures,
+                transparentStatusCode,
+                nonbrowserRequestStatus,
+            } = request.userData as UserData;
+
             const errorResponse = {
                 errorMessage: err.message,
             };
@@ -120,223 +113,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 }
             },
         ],
-        async requestHandler({ request, response, parseWithCheerio, sendRequest, page }) {
-            const {
-                requestDetails,
-                jsonResponse,
-                extractRules,
-                screenshotSettings,
-                inputtedUrl,
-                parsedInputtedParams,
-                timeMeasures,
-                jsScenario,
-                returnPageSource,
-                blockResourceTypes,
-                binaryTarget,
-            } = request.userData as UserData;
-
-            // See comment in crawler.autoscaledPoolOptions.runTaskFunction override
-            timeMeasures.push((global as unknown as { latestRequestTaskTimeMeasure: TimeMeasure }).latestRequestTaskTimeMeasure);
-
-            const responseId = request.uniqueKey;
-            const renderJs = !request.skipNavigation;
-
-            if (renderJs && blockResourceTypes.length) {
-                await page.route('**', async (route) => {
-                    if (blockResourceTypes.includes(route.request().resourceType())) {
-                        await route.abort();
-                    }
-                });
-            }
-
-            const xhr: XHRRequestData[] = [];
-            if (renderJs && jsonResponse) {
-                page.on('response', async (resp) => {
-                    try {
-                        const req = resp.request();
-                        if (req.resourceType() !== 'xhr') {
-                            return;
-                        }
-
-                        xhr.push({
-                            url: req.url(),
-                            statusCode: resp.status(),
-                            method: req.method(),
-                            requestHeaders: req.headers(),
-                            headers: resp.headers(),
-                            body: (await resp.body()).toString(),
-                        });
-                    } catch (e) {
-                        console.log((e as Error).message);
-                    }
-                });
-            }
-
-            if (renderJs) {
-                timeMeasures.push({
-                    event: 'page loaded',
-                    time: Date.now(),
-                });
-            }
-
-            const jsScenarioReportFull: FullJsScenarioReport = {};
-            if (renderJs && jsScenario.instructions.length) {
-                const { jsScenarioReport, evaluateResults } = await performInstructionsAndGenerateReport(jsScenario, page);
-                jsScenarioReportFull.jsScenarioReport = jsScenarioReport;
-                jsScenarioReportFull.evaluateResults = evaluateResults;
-            }
-
-            let statusCode: number | null;
-            let $: CheerioAPI;
-            if (!renderJs) {
-                const resp = await sendRequest({
-                    url: request.url,
-                    throwHttpErrors: false,
-                    headers: request.headers,
-                });
-                timeMeasures.push({
-                    event: 'page loaded',
-                    time: Date.now(),
-                });
-                statusCode = resp.statusCode;
-                if (resp.statusCode >= 300 && resp.statusCode !== 404) {
-                    (request.userData as UserData).nonbrowserRequestStatus = resp.statusCode;
-                    throw new Error(`HTTPError: Response code ${resp.statusCode}`);
-                }
-                requestDetails.resolvedUrl = resp.url;
-                requestDetails.responseHeaders = resp.headers as Record<string, string | string[]>;
-
-                if (binaryTarget) {
-                    const result = resp.rawBody;
-                    const contentType = resp.headers['content-type'];
-                    if (!contentType) {
-                        throw new Error(`No content-type returned in the response`);
-                    }
-                    if (jsonResponse) {
-                        const verboseResponse: VerboseResult = {
-                            body: result.toString(),
-                            cookies: [],
-                            evaluateResults: [],
-                            jsScenarioReport: {},
-                            headers: requestDetails.responseHeaders,
-                            type: 'file',
-                            iframes: [],
-                            xhr,
-                            initialStatusCode: statusCode,
-                            resolvedUrl: requestDetails.resolvedUrl,
-                            screenshot: null,
-                        };
-                        await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
-                        sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');
-                        return;
-                    }
-                    await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result });
-                    sendSuccResponseById(responseId, result, contentType);
-                    return;
-                }
-
-                $ = load(resp.body);
-            } else {
-                requestDetails.resolvedUrl = response?.url() || '';
-                requestDetails.responseHeaders = response?.headers() || {};
-                $ = await parseWithCheerio() as CheerioAPI;
-                statusCode = response?.status() || null;
-            }
-
-            const cookies = await page.context().cookies(request.url) || [];
-
-            const iframes: IFrameData[] = [];
-            if (renderJs && jsonResponse) {
-                const frames = page.frames();
-                for (const frame of frames) {
-                    let frameEl;
-                    try {
-                        frameEl = await frame.frameElement();
-                    } catch (e) {
-                        continue;
-                    }
-
-                    const src = await frameEl.getAttribute('src') || '';
-                    const content = await frame.content();
-
-                    iframes.push({
-                        src,
-                        content,
-                    });
-                }
-            }
-
-            let screenshot = null;
-            if (renderJs && screenshotSettings.screenshotType !== 'none') {
-                const { screenshotType, selector } = screenshotSettings;
-                let screenshotBuffer: Buffer;
-                if (screenshotType === 'full') {
-                    screenshotBuffer = await page.screenshot({ fullPage: true });
-                } else if (screenshotType === 'window') {
-                    screenshotBuffer = await page.screenshot();
-                } else {
-                    screenshotBuffer = await page.locator(selector as string).screenshot();
-                }
-                screenshot = screenshotBuffer.toString('base64');
-
-                if (!jsonResponse) {
-                    await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: screenshot });
-                    sendSuccResponseById(responseId, screenshotBuffer, 'image/png');
-                    return;
-                }
-            }
-
-            if (!extractRules) {
-                // response.body() contains HTML of the page before js rendering
-                const htmlResult = returnPageSource && renderJs
-                    ? (await response?.body())?.toString() as string
-                    : $.html();
-
-                if (jsonResponse) {
-                    const verboseResponse: VerboseResult = {
-                        body: htmlResult,
-                        cookies,
-                        evaluateResults: jsScenarioReportFull.evaluateResults || [],
-                        jsScenarioReport: jsScenarioReportFull.jsScenarioReport || {},
-                        headers: requestDetails.responseHeaders,
-                        type: 'html',
-                        iframes,
-                        xhr,
-                        initialStatusCode: statusCode,
-                        resolvedUrl: requestDetails.resolvedUrl,
-                        screenshot,
-                    };
-                    await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
-                    sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');
-                    return;
-                }
-                await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: htmlResult });
-                sendSuccResponseById(responseId, htmlResult, 'text/html');
-                return;
-            }
-
-            const resultFromExtractRules = scrapeBasedOnExtractRules($ as CheerioAPI, extractRules);
-            if (jsonResponse) {
-                const verboseResponse: VerboseResult = {
-                    body: resultFromExtractRules,
-                    cookies,
-                    evaluateResults: jsScenarioReportFull.evaluateResults || [],
-                    jsScenarioReport: jsScenarioReportFull.jsScenarioReport || {},
-                    headers: requestDetails.responseHeaders,
-                    type: 'json',
-                    iframes,
-                    xhr,
-                    initialStatusCode: statusCode,
-                    resolvedUrl: requestDetails.resolvedUrl,
-                    screenshot,
-                };
-                await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
-                sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');
-            } else {
-                await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: resultFromExtractRules });
-                sendSuccResponseById(responseId, JSON.stringify(resultFromExtractRules), 'application/json');
-            }
-        },
+        requestHandler: router,
     });
 
     // TODO: This is just for Crawlee perf measurement, remove it once we properly understand the bottlenecks

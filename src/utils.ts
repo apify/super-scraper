@@ -4,14 +4,15 @@ import type { IncomingMessage } from 'http';
 import { RequestOptions } from 'crawlee';
 import { v4 as uuidv4 } from 'uuid';
 import { HeaderGenerator } from 'header-generator';
-import { ProxyConfigurationOptions } from 'apify';
+import { Actor, ProxyConfigurationOptions, log } from 'apify';
 import { TimeMeasure, JsScenario, RequestDetails, ScreenshotSettings, UserData } from './types.js';
 import { EquivalentParameters, ScrapingBee, ScraperApi, ScrapingAnt } from './params.js';
 import { UserInputError } from './errors.js';
 import { validateAndTransformExtractRules } from './extract_rules_utils.js';
 import { parseAndValidateInstructions } from './instructions_utils.js';
+import { VALID_RESOURCES } from './const.js';
 
-export const transformTimeMeasuresToRelative = (timeMeasures: TimeMeasure[]): TimeMeasure[] => {
+const transformTimeMeasuresToRelative = (timeMeasures: TimeMeasure[]): TimeMeasure[] => {
     const firstMeasure = timeMeasures[0].time;
     return timeMeasures.map((measure) => {
         return {
@@ -21,10 +22,21 @@ export const transformTimeMeasuresToRelative = (timeMeasures: TimeMeasure[]): Ti
     }).sort((a, b) => a.time - b.time);
 };
 
-// eslint-disable-next-line max-len
-const validResources = ['document', 'stylesheet', 'image', 'media', 'font', 'script', 'texttrack', 'xhr', 'fetch', 'eventsource', 'websocket', 'manifest', 'other'];
+export async function pushLogData(timeMeasures: TimeMeasure[], data: Record<string, unknown>, failed = false) {
+    timeMeasures.push({
+        event: failed ? 'failed request' : 'handler end',
+        time: Date.now(),
+    });
+    const relativeMeasures = transformTimeMeasuresToRelative(timeMeasures);
+    log.info(`Response sent (${relativeMeasures.at(-1)?.time} ms) ${data.inputtedUrl}`, { ...relativeMeasures });
+    await Actor.pushData({
+        ...data,
+        measures: relativeMeasures,
+    });
+}
+
 const isValidResourceType = (resource: string) => {
-    return validResources.includes(resource);
+    return VALID_RESOURCES.includes(resource);
 };
 
 function mapEquivalentParams(params: ParsedUrlQuery) {
