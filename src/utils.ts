@@ -189,9 +189,6 @@ export function createRequestForCrawler(params: ParsedUrlQuery, req: IncomingMes
     let binaryTarget = false;
     if (params[ScraperApi.binaryTarget]) {
         const binaryTargetIsTrue = params[ScraperApi.binaryTarget] === 'true';
-        if (binaryTargetIsTrue && renderJs) {
-            throw new UserInputError('Param binary_target can be used only when JS rendering is set to false (render_js, browser, render)');
-        }
         binaryTarget = binaryTargetIsTrue;
     }
 
