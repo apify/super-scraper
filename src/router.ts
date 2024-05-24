@@ -254,3 +254,65 @@ router.addHandler<UserData>(Label.HTTP, async ({ request, sendRequest }) => {
     await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: htmlResult });
     sendSuccResponseById(responseId, htmlResult, 'text/html');
 });
+
+router.addHandler<UserData>(Label.BINARY_TARGET, async ({ request, sendRequest }) => {
+    const {
+        requestDetails,
+        jsonResponse,
+        inputtedUrl,
+        parsedInputtedParams,
+        timeMeasures,
+    } = request.userData as UserData;
+
+    // See comment in crawler.autoscaledPoolOptions.runTaskFunction override
+    timeMeasures.push((global as unknown as { latestRequestTaskTimeMeasure: TimeMeasure }).latestRequestTaskTimeMeasure);
+
+    const responseId = request.uniqueKey;
+
+    const resp = await sendRequest({
+        url: request.url,
+        throwHttpErrors: false,
+        headers: request.headers,
+    });
+
+    timeMeasures.push({
+        event: 'page loaded',
+        time: Date.now(),
+    });
+
+    const { statusCode } = resp;
+    if (resp.statusCode >= 300 && resp.statusCode !== 404) {
+        (request.userData as UserData).nonbrowserRequestStatus = resp.statusCode;
+        throw new Error(`HTTPError: Response code ${resp.statusCode}`);
+    }
+
+    requestDetails.resolvedUrl = resp.url;
+    requestDetails.responseHeaders = resp.headers as Record<string, string | string[]>;
+    const result = resp.rawBody;
+    const contentType = resp.headers['content-type'];
+    if (!contentType) {
+        throw new Error(`No content-type returned in the response`);
+    }
+
+    if (jsonResponse) {
+        const verboseResponse: VerboseResult = {
+            body: result.toString(),
+            cookies: [],
+            evaluateResults: [],
+            jsScenarioReport: {},
+            headers: requestDetails.responseHeaders,
+            type: 'file',
+            iframes: [],
+            xhr: [],
+            initialStatusCode: statusCode,
+            resolvedUrl: requestDetails.resolvedUrl,
+            screenshot: null,
+        };
+        await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
+        sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');
+        return;
+    }
+
+    await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result });
+    sendSuccResponseById(responseId, result, contentType);
+});
