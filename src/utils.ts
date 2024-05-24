@@ -10,7 +10,7 @@ import { EquivalentParameters, ScrapingBee, ScraperApi, ScrapingAnt } from './pa
 import { UserInputError } from './errors.js';
 import { validateAndTransformExtractRules } from './extract_rules_utils.js';
 import { parseAndValidateInstructions } from './instructions_utils.js';
-import { VALID_RESOURCES } from './const.js';
+import { Label, VALID_RESOURCES } from './const.js';
 
 const transformTimeMeasuresToRelative = (timeMeasures: TimeMeasure[]): TimeMeasure[] => {
     const firstMeasure = timeMeasures[0].time;
@@ -274,6 +274,12 @@ export function createRequestForCrawler(params: ParsedUrlQuery, req: IncomingMes
         finalRequest.headers!.Cookie = params[ScrapingBee.cookies] as string;
     }
 
+    if (binaryTarget) {
+        finalRequest.label = Label.BINARY_TARGET;
+        return finalRequest;
+    }
+
+    finalRequest.label = renderJs ? Label.BROWSER : Label.HTTP;
     return finalRequest;
 }
 
