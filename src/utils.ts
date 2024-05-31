@@ -59,6 +59,17 @@ export function parseParameters(url: string) {
     return mapEquivalentParams(params);
 }
 
+function generateHeaders(device: 'mobile' | 'desktop') {
+    const headerGenerator = new HeaderGenerator({
+        devices: [device],
+    });
+    const generatedHeaders = headerGenerator.getHeaders();
+    // remove 'te' header as it is causing page.goto: net::ERR_INVALID_ARGUMENT error
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { te, ...rest } = generatedHeaders;
+    return generatedHeaders;
+}
+
 export function createRequestForCrawler(params: ParsedUrlQuery, req: IncomingMessage): RequestOptions<UserData> {
     if (!params[ScrapingBee.url] || !params[ScrapingBee.url].length) {
         throw new UserInputError('Parameter url is either missing or empty');
@@ -83,10 +94,7 @@ export function createRequestForCrawler(params: ParsedUrlQuery, req: IncomingMes
         }
     }
 
-    const headerGenerator = new HeaderGenerator({
-        devices: [selectedDevice],
-    });
-    const generatedHeaders = headerGenerator.getHeaders();
+    const generatedHeaders = generateHeaders(selectedDevice);
 
     const doScenario = !!params[ScrapingBee.jsScenario];
     const jsScenario: JsScenario = doScenario
