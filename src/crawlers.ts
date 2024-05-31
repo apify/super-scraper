@@ -104,7 +104,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
         },
         preNavigationHooks: [
             async ({ request, page, blockRequests }) => {
-                const { timeMeasures, blockResources, width, height, blockResourceTypes } = request.userData as UserData;
+                const { timeMeasures, blockResources, width, height, blockResourceTypes, jsonResponse, requestDetails } = request.userData as UserData;
                 timeMeasures.push({
                     event: 'pre-navigation hook',
                     time: Date.now(),
@@ -122,6 +122,28 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                     await page.route('**', async (route) => {
                         if (blockResourceTypes.includes(route.request().resourceType())) {
                             await route.abort();
+                        }
+                    });
+                }
+
+                if (request.label === Label.BROWSER && jsonResponse) {
+                    page.on('response', async (resp) => {
+                        try {
+                            const req = resp.request();
+                            if (req.resourceType() !== 'xhr') {
+                                return;
+                            }
+
+                            requestDetails.xhr.push({
+                                url: req.url(),
+                                statusCode: resp.status(),
+                                method: req.method(),
+                                requestHeaders: req.headers(),
+                                headers: resp.headers(),
+                                body: (await resp.body()).toString(),
+                            });
+                        } catch (e) {
+                            log.warning((e as Error).message);
                         }
                     });
                 }

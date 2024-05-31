@@ -1,7 +1,7 @@
-import { createPlaywrightRouter, log } from 'crawlee';
+import { createPlaywrightRouter } from 'crawlee';
 import { CheerioAPI, load } from 'cheerio';
 import { Label } from './const.js';
-import { FullJsScenarioReport, IFrameData, TimeMeasure, UserData, VerboseResult, XHRRequestData } from './types.js';
+import { FullJsScenarioReport, IFrameData, TimeMeasure, UserData, VerboseResult } from './types.js';
 import { performInstructionsAndGenerateReport } from './instructions_utils.js';
 import { sendSuccResponseById } from './responses.js';
 import { scrapeBasedOnExtractRules } from './extract_rules_utils.js';
@@ -26,29 +26,6 @@ router.addHandler<UserData>(Label.BROWSER, async ({ request, page, response, par
     timeMeasures.push((global as unknown as { latestRequestTaskTimeMeasure: TimeMeasure }).latestRequestTaskTimeMeasure);
 
     const responseId = request.uniqueKey;
-
-    const xhr: XHRRequestData[] = [];
-    if (jsonResponse) {
-        page.on('response', async (resp) => {
-            try {
-                const req = resp.request();
-                if (req.resourceType() !== 'xhr') {
-                    return;
-                }
-
-                xhr.push({
-                    url: req.url(),
-                    statusCode: resp.status(),
-                    method: req.method(),
-                    requestHeaders: req.headers(),
-                    headers: resp.headers(),
-                    body: (await resp.body()).toString(),
-                });
-            } catch (e) {
-                log.warning((e as Error).message);
-            }
-        });
-    }
 
     timeMeasures.push({
         event: 'page loaded',
@@ -121,7 +98,7 @@ router.addHandler<UserData>(Label.BROWSER, async ({ request, page, response, par
                 headers: requestDetails.responseHeaders,
                 type: 'json',
                 iframes,
-                xhr,
+                xhr: requestDetails.xhr,
                 initialStatusCode: statusCode,
                 resolvedUrl: requestDetails.resolvedUrl,
                 screenshot,
@@ -149,7 +126,7 @@ router.addHandler<UserData>(Label.BROWSER, async ({ request, page, response, par
             headers: requestDetails.responseHeaders,
             type: 'html',
             iframes,
-            xhr,
+            xhr: requestDetails.xhr,
             initialStatusCode: statusCode,
             resolvedUrl: requestDetails.resolvedUrl,
             screenshot,

@@ -160,6 +160,7 @@ export function createRequestForCrawler(params: ParsedUrlQuery, req: IncomingMes
         requestErrors: [],
         resolvedUrl: null,
         responseHeaders: null,
+        xhr: [],
     };
 
     const screenshotSettings: ScreenshotSettings = {
