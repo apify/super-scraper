@@ -113,7 +113,7 @@ router.addHandler<UserData>(Label.BROWSER, async ({ request, page, response, par
         screenshot = screenshotBuffer.toString('base64');
 
         if (!jsonResponse) {
-            await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: screenshot });
+            await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: screenshot, errors: requestDetails.requestErrors });
             sendSuccResponseById(responseId, screenshotBuffer, 'image/png');
             return;
         }
@@ -135,10 +135,10 @@ router.addHandler<UserData>(Label.BROWSER, async ({ request, page, response, par
                 resolvedUrl: requestDetails.resolvedUrl,
                 screenshot,
             };
-            await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
+            await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse, errors: requestDetails.requestErrors });
             sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');
         } else {
-            await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: resultFromExtractRules });
+            await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: resultFromExtractRules, errors: requestDetails.requestErrors });
             sendSuccResponseById(responseId, JSON.stringify(resultFromExtractRules), 'application/json');
         }
         return;
@@ -163,11 +163,11 @@ router.addHandler<UserData>(Label.BROWSER, async ({ request, page, response, par
             resolvedUrl: requestDetails.resolvedUrl,
             screenshot,
         };
-        await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
+        await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse, errors: requestDetails.requestErrors });
         sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');
         return;
     }
-    await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: htmlResult });
+    await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: htmlResult, errors: requestDetails.requestErrors });
     sendSuccResponseById(responseId, htmlResult, 'text/html');
 });
 
@@ -223,10 +223,10 @@ router.addHandler<UserData>(Label.HTTP, async ({ request, sendRequest }) => {
                 resolvedUrl: requestDetails.resolvedUrl,
                 screenshot: null,
             };
-            await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
+            await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse, errors: requestDetails.requestErrors });
             sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');
         } else {
-            await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: resultFromExtractRules });
+            await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: resultFromExtractRules, errors: requestDetails.requestErrors });
             sendSuccResponseById(responseId, JSON.stringify(resultFromExtractRules), 'application/json');
         }
         return;
@@ -247,11 +247,11 @@ router.addHandler<UserData>(Label.HTTP, async ({ request, sendRequest }) => {
             resolvedUrl: requestDetails.resolvedUrl,
             screenshot: null,
         };
-        await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
+        await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse, errors: requestDetails.requestErrors });
         sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');
         return;
     }
-    await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: htmlResult });
+    await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: htmlResult, errors: requestDetails.requestErrors });
     sendSuccResponseById(responseId, htmlResult, 'text/html');
 });
 
@@ -308,11 +308,11 @@ router.addHandler<UserData>(Label.BINARY_TARGET, async ({ request, sendRequest }
             resolvedUrl: requestDetails.resolvedUrl,
             screenshot: null,
         };
-        await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
+        await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse, errors: requestDetails.requestErrors });
         sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');
         return;
     }
 
-    await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result });
+    await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result, errors: requestDetails.requestErrors });
     sendSuccResponseById(responseId, result, contentType);
 });

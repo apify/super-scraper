@@ -23,7 +23,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
     const crawler = new PlaywrightCrawler({
         keepAlive: true,
         proxyConfiguration: proxyConfig,
-        maxRequestRetries: 3,
+        maxRequestRetries: 4,
         requestQueue: queue,
         launchContext: {
             browserPerProxy: false,
@@ -66,6 +66,11 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                 nonbrowserRequestStatus,
             } = request.userData as UserData;
 
+            requestDetails.requestErrors.push({
+                attempt: request.retryCount + 1,
+                errorMessage: err.message,
+            });
+
             const errorResponse = {
                 errorMessage: err.message,
             };
@@ -89,10 +94,10 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
                     resolvedUrl: '',
                     screenshot: null,
                 };
-                await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse }, true);
+                await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse, errors: requestDetails.requestErrors }, true);
                 sendErrorResponseById(request.uniqueKey, JSON.stringify(verboseResponse), statusCode);
             } else {
-                await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: errorResponse }, true);
+                await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: errorResponse, errors: requestDetails.requestErrors }, true);
                 sendErrorResponseById(request.uniqueKey, JSON.stringify(errorResponse), statusCode);
             }
         },
