@@ -20,21 +20,12 @@ router.addHandler<UserData>(Label.BROWSER, async ({ request, page, response, par
         timeMeasures,
         jsScenario,
         returnPageSource,
-        blockResourceTypes,
     } = request.userData;
 
     // See comment in crawler.autoscaledPoolOptions.runTaskFunction override
     timeMeasures.push((global as unknown as { latestRequestTaskTimeMeasure: TimeMeasure }).latestRequestTaskTimeMeasure);
 
     const responseId = request.uniqueKey;
-
-    if (blockResourceTypes.length) {
-        await page.route('**', async (route) => {
-            if (blockResourceTypes.includes(route.request().resourceType())) {
-                await route.abort();
-            }
-        });
-    }
 
     const xhr: XHRRequestData[] = [];
     if (jsonResponse) {

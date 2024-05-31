@@ -7,6 +7,7 @@ import { TimeMeasure, UserData, VerboseResult, CrawlerOptions } from './types.js
 import { addResponse, sendErrorResponseById } from './responses.js';
 import { router } from './router.js';
 import { pushLogData } from './utils.js';
+import { Label } from './const.js';
 
 const crawlers = new Map<string, PlaywrightCrawler>();
 
@@ -103,7 +104,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
         },
         preNavigationHooks: [
             async ({ request, page, blockRequests }) => {
-                const { timeMeasures, blockResources, width, height } = request.userData as UserData;
+                const { timeMeasures, blockResources, width, height, blockResourceTypes } = request.userData as UserData;
                 timeMeasures.push({
                     event: 'pre-navigation hook',
                     time: Date.now(),
@@ -111,9 +112,17 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
 
                 await page.setViewportSize({ width, height });
 
-                if (!request.skipNavigation && blockResources) {
+                if (request.label === Label.BROWSER && blockResources) {
                     await blockRequests({
                         extraUrlPatterns: ['*.svg'],
+                    });
+                }
+
+                if (request.label === Label.BROWSER && blockResourceTypes.length) {
+                    await page.route('**', async (route) => {
+                        if (blockResourceTypes.includes(route.request().resourceType())) {
+                            await route.abort();
+                        }
                     });
                 }
             },
