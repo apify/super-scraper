@@ -5,6 +5,7 @@ export interface RequestDetails {
     requestErrors: { attempt: number, errorMessage: string }[],
     resolvedUrl: string | null,
     responseHeaders: Record<string, string | string[]> | null,
+    xhr: XHRRequestData[],
 }
 
 export interface XHRRequestData {

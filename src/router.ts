@@ -1,7 +1,7 @@
-import { createPlaywrightRouter, log } from 'crawlee';
+import { createPlaywrightRouter } from 'crawlee';
 import { CheerioAPI, load } from 'cheerio';
 import { Label } from './const.js';
-import { FullJsScenarioReport, IFrameData, TimeMeasure, UserData, VerboseResult, XHRRequestData } from './types.js';
+import { FullJsScenarioReport, IFrameData, TimeMeasure, UserData, VerboseResult } from './types.js';
 import { performInstructionsAndGenerateReport } from './instructions_utils.js';
 import { sendSuccResponseById } from './responses.js';
 import { scrapeBasedOnExtractRules } from './extract_rules_utils.js';
@@ -20,44 +20,12 @@ router.addHandler<UserData>(Label.BROWSER, async ({ request, page, response, par
         timeMeasures,
         jsScenario,
         returnPageSource,
-        blockResourceTypes,
     } = request.userData;
 
     // See comment in crawler.autoscaledPoolOptions.runTaskFunction override
     timeMeasures.push((global as unknown as { latestRequestTaskTimeMeasure: TimeMeasure }).latestRequestTaskTimeMeasure);
 
     const responseId = request.uniqueKey;
-
-    if (blockResourceTypes.length) {
-        await page.route('**', async (route) => {
-            if (blockResourceTypes.includes(route.request().resourceType())) {
-                await route.abort();
-            }
-        });
-    }
-
-    const xhr: XHRRequestData[] = [];
-    if (jsonResponse) {
-        page.on('response', async (resp) => {
-            try {
-                const req = resp.request();
-                if (req.resourceType() !== 'xhr') {
-                    return;
-                }
-
-                xhr.push({
-                    url: req.url(),
-                    statusCode: resp.status(),
-                    method: req.method(),
-                    requestHeaders: req.headers(),
-                    headers: resp.headers(),
-                    body: (await resp.body()).toString(),
-                });
-            } catch (e) {
-                log.warning((e as Error).message);
-            }
-        });
-    }
 
     timeMeasures.push({
         event: 'page loaded',
@@ -113,7 +81,7 @@ router.addHandler<UserData>(Label.BROWSER, async ({ request, page, response, par
         screenshot = screenshotBuffer.toString('base64');
 
         if (!jsonResponse) {
-            await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: screenshot });
+            await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: screenshot, errors: requestDetails.requestErrors });
             sendSuccResponseById(responseId, screenshotBuffer, 'image/png');
             return;
         }
@@ -130,15 +98,15 @@ router.addHandler<UserData>(Label.BROWSER, async ({ request, page, response, par
                 headers: requestDetails.responseHeaders,
                 type: 'json',
                 iframes,
-                xhr,
+                xhr: requestDetails.xhr,
                 initialStatusCode: statusCode,
                 resolvedUrl: requestDetails.resolvedUrl,
                 screenshot,
             };
-            await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
+            await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse, errors: requestDetails.requestErrors });
             sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');
         } else {
-            await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: resultFromExtractRules });
+            await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: resultFromExtractRules, errors: requestDetails.requestErrors });
             sendSuccResponseById(responseId, JSON.stringify(resultFromExtractRules), 'application/json');
         }
         return;
@@ -158,16 +126,16 @@ router.addHandler<UserData>(Label.BROWSER, async ({ request, page, response, par
             headers: requestDetails.responseHeaders,
             type: 'html',
             iframes,
-            xhr,
+            xhr: requestDetails.xhr,
             initialStatusCode: statusCode,
             resolvedUrl: requestDetails.resolvedUrl,
             screenshot,
         };
-        await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
+        await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse, errors: requestDetails.requestErrors });
         sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');
         return;
     }
-    await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: htmlResult });
+    await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: htmlResult, errors: requestDetails.requestErrors });
     sendSuccResponseById(responseId, htmlResult, 'text/html');
 });
 
@@ -223,10 +191,10 @@ router.addHandler<UserData>(Label.HTTP, async ({ request, sendRequest }) => {
                 resolvedUrl: requestDetails.resolvedUrl,
                 screenshot: null,
             };
-            await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
+            await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse, errors: requestDetails.requestErrors });
             sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');
         } else {
-            await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: resultFromExtractRules });
+            await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: resultFromExtractRules, errors: requestDetails.requestErrors });
             sendSuccResponseById(responseId, JSON.stringify(resultFromExtractRules), 'application/json');
         }
         return;
@@ -247,11 +215,11 @@ router.addHandler<UserData>(Label.HTTP, async ({ request, sendRequest }) => {
             resolvedUrl: requestDetails.resolvedUrl,
             screenshot: null,
         };
-        await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
+        await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse, errors: requestDetails.requestErrors });
         sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');
         return;
     }
-    await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: htmlResult });
+    await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: htmlResult, errors: requestDetails.requestErrors });
     sendSuccResponseById(responseId, htmlResult, 'text/html');
 });
 
@@ -308,11 +276,11 @@ router.addHandler<UserData>(Label.BINARY_TARGET, async ({ request, sendRequest }
             resolvedUrl: requestDetails.resolvedUrl,
             screenshot: null,
         };
-        await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse });
+        await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result: verboseResponse, errors: requestDetails.requestErrors });
         sendSuccResponseById(responseId, JSON.stringify(verboseResponse), 'application/json');
         return;
     }
 
-    await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result });
+    await pushLogData(timeMeasures, { inputtedUrl, parsedInputtedParams, result, errors: requestDetails.requestErrors });
     sendSuccResponseById(responseId, result, contentType);
 });
