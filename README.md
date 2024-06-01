@@ -28,7 +28,7 @@ You can create an Apify account free of charge.
 ```ts
 import axios from 'axios';
 
-const resp = await axios.get('https://apify--super-scraper-api.apify.actor/', {
+const resp = await axios.get('https://super-scraper-api.apify.actor/', {
     params: {
         url: 'https://apify.com/store',
         wait_for: '.ActorStoreItem-title',
@@ -47,7 +47,7 @@ console.log(resp.data);
 
 ```shell
 curl -X GET \
-  'https://apify--super-scraper-api.apify.actor/?url=https://apify.com/store&wait_for=.ActorStoreItem-title&screenshot=true&json_response=true' \
+  'https://super-scraper-api.apify.actor/?url=https://apify.com/store&wait_for=.ActorStoreItem-title&screenshot=true&json_response=true' \
   --header 'Authorization: Bearer <YOUR_APIFY_API_TOKEN>'
 ```
 
@@ -59,7 +59,7 @@ Alternatively, you can pass the API token via the `token` query parameter to aut
 ### Node.js
 
 ```ts
-const resp = await axios.get('https://apify--super-scraper-api.apify.actor/', {
+const resp = await axios.get('https://super-scraper-api.apify.actor/', {
     params: {
         url: 'https://apify.com/store',
         token: '<YOUR_APIFY_API_TOKEN>'
@@ -71,7 +71,7 @@ const resp = await axios.get('https://apify--super-scraper-api.apify.actor/', {
 ### curl
 
 ```shell
-curl -X GET 'https://apify--super-scraper-api.apify.actor/?url=https://apify.com/store&wait_for=.ActorStoreItem-title&json_response=true&token=<YOUR_APIFY_API_TOKEN>'
+curl -X GET 'https://super-scraper-api.apify.actor/?url=https://apify.com/store&wait_for=.ActorStoreItem-title&json_response=true&token=<YOUR_APIFY_API_TOKEN>'
 ```
 
 ## Pricing
@@ -240,7 +240,7 @@ const extractRules = {
     },
 };
 
-const resp = await axios.get('https://apify--super-scraper-api.apify.actor/', {
+const resp = await axios.get('https://super-scraper-api.apify.actor/', {
     params: {
         url: 'https://blog.apify.com/',
         extract_rules: JSON.stringify(extractRules),
@@ -291,7 +291,7 @@ const instructions = {
     ],
 };
 
-const resp = await axios.get('https://apify--super-scraper-api.apify.actor/', {
+const resp = await axios.get('https://super-scraper-api.apify.actor/', {
     params: {
         url: 'https://www.example.com',
         js_scenario: JSON.stringify(instructions),
