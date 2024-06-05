@@ -67,7 +67,7 @@ function generateHeaders(device: 'mobile' | 'desktop') {
     // remove 'te' header as it is causing page.goto: net::ERR_INVALID_ARGUMENT error
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { te, ...rest } = generatedHeaders;
-    return generatedHeaders;
+    return rest;
 }
 
 export function createRequestForCrawler(params: ParsedUrlQuery, req: IncomingMessage): RequestOptions<UserData> {
