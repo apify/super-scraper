@@ -1,8 +1,8 @@
-# SuperScraper
+# SuperScraper API
 
-SuperScraper is an Actor that provides a REST API for scraping websites.
+SuperScraper API is an Actor that provides a REST API for scraping websites.
 Just pass a URL of a web page and get back the fully-rendered HTML content.
-The SuperScraper API is compatible with [ScrapingBee](https://www.scrapingbee.com/),
+SuperScraper API is compatible with [ScrapingBee](https://www.scrapingbee.com/),
 [ScrapingAnt](https://scrapingant.com/),
 and [ScraperAPI](https://scraperapi.com/).
 That means the Actor can be used as a potentially cheaper drop-in replacement for these services.
@@ -13,7 +13,7 @@ Main features:
 - Seamlessly scale to a large number of web pages as needed.
 - Capture screenshots of the web pages.
 
-Note that SuperScraper uses the new experimental Actor Standby mode, so it's not started the traditional way from Apify Console.
+Note that SuperScraper API uses the new experimental Actor Standby mode, so it's not started the traditional way from Apify Console.
 Instead, it's invoked via the HTTP REST API provided directly by the Actor. See the examples below.
 
 ## Usage examples
@@ -76,11 +76,11 @@ curl -X GET 'https://super-scraper-api.apify.actor/?url=https://apify.com/store&
 
 ## Pricing
 
-When using SuperScraper, you're charged based on your actual usage of the Apify platform's computing, storage, and networking resources. 
+When using SuperScraper API, you're charged based on your actual usage of the Apify platform's computing, storage, and networking resources. 
 
 Cost depends on the target sites, your settings and API parameters, the load of your requests, and random network and target site conditions.
 
-From our testing, SuperScraper is cheaper than ScrapingBee, ScrapingAnt, and ScraperAPI in many configurations, while in some others, it's more expensive.
+From our testing, SuperScraper API is cheaper than ScrapingBee, ScrapingAnt, and ScraperAPI in many configurations, while in some others, it's more expensive.
 
 The best way to see your price is to conduct a real-world test.
 
@@ -97,7 +97,7 @@ An example cost on a free account (the pricing is cheaper on higher plans) for 3
 
 ### ScrapingBee API parameters
 
-SuperScraper supports most of the API parameters of [ScrapingBee](https://www.scrapingbee.com/documentation/):
+SuperScraper API supports most of the API parameters of [ScrapingBee](https://www.scrapingbee.com/documentation/):
 
 | parameter | description                                                                                                                                                                                                                                                                                                                   |
 | -------- |-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -132,7 +132,7 @@ ScrapingBee's API parameters `block_ads` and `session_id` are currently not supp
 
 ### ScrapingAnt API parameters
 
-SuperScraper supports most of the API parameters of [ScrapingAnt](https://docs.scrapingant.com/request-response-format#available-parameters):
+SuperScraper API supports most of the API parameters of [ScrapingAnt](https://docs.scrapingant.com/request-response-format#available-parameters):
 
 | parameter | description                                                                                                                                                                                                                                                                                                                                  |
 | -------- |----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -154,7 +154,7 @@ This behavior can be changed using ScrapingBee's `forward_headers` or `forward_h
 
 ### ScraperAPI API parameters
 
-The Super-Scraper Actor supports most of the API parameters of [ScraperAPI](https://docs.scraperapi.com/making-requests/customizing-requests):
+SuperScraper API supports most of the API parameters of [ScraperAPI](https://docs.scraperapi.com/making-requests/customizing-requests):
 
 | parameter | description                                                                                                                                                                                                                                                                                                                   |
 | -------- |-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
