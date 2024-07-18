@@ -2,6 +2,7 @@
     "title": "PlaywrightCrawler Template",
     "type": "object",
     "schemaVersion": 1,
+    "description": "Super Scraper API currently cannot be run manually via Input. Use Standby endpoint with available parameters.",
     "properties": {
     }
 }
