@@ -184,7 +184,7 @@ export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEF
     return crawler;
 };
 
-export const adddRequest = async (request: RequestOptions<UserData>, res: ServerResponse, crawlerOptions: CrawlerOptions) => {
+export const addRequest = async (request: RequestOptions<UserData>, res: ServerResponse, crawlerOptions: CrawlerOptions) => {
     const key = JSON.stringify(crawlerOptions);
     const crawler = crawlers.has(key) ? crawlers.get(key)! : await createAndStartCrawler(crawlerOptions);
 

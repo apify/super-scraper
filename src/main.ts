@@ -1,7 +1,7 @@
 import { Actor, log } from 'apify';
 import { createServer } from 'http';
 import { CrawlerOptions } from './types.js';
-import { adddRequest, createAndStartCrawler, DEFAULT_CRAWLER_OPTIONS } from './crawlers.js';
+import { addRequest, createAndStartCrawler, DEFAULT_CRAWLER_OPTIONS } from './crawlers.js';
 import { addTimeoutToAllResponses, sendErrorResponseById } from './responses.js';
 import { ScrapingBee } from './params.js';
 import { createProxyOptions, createRequestForCrawler, parseParameters } from './utils.js';
@@ -52,7 +52,7 @@ const server = createServer(async (req, res) => {
         const crawlerOptions: CrawlerOptions = {
             proxyConfigurationOptions: createProxyOptions(params),
         };
-        await adddRequest(crawlerRequest, res, crawlerOptions);
+        await addRequest(crawlerRequest, res, crawlerOptions);
     } catch (e) {
         const error = e as Error;
         const errorMessage = {
