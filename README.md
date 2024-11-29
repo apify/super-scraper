@@ -1,11 +1,10 @@
 # SuperScraper API
 
 SuperScraper API is an Actor that provides a REST API for scraping websites.
-Just pass a URL of a web page and get back the fully-rendered HTML content.
+Just pass the URL of a web page and get back the fully rendered HTML content.
 SuperScraper API is compatible with [ScrapingBee](https://www.scrapingbee.com/),
 [ScrapingAnt](https://scrapingant.com/),
-and [ScraperAPI](https://scraperapi.com/).
-That means the Actor can be used as a potentially cheaper drop-in replacement for these services.
+and [ScraperAPI](https://scraperapi.com/) interfaces.
 
 Main features:
 - Extract HTML from arbitrary URLs with a headless browser for dynamic content rendering.
@@ -79,8 +78,6 @@ curl -X GET 'https://super-scraper-api.apify.actor/?url=https://apify.com/store&
 When using SuperScraper API, you're charged based on your actual usage of the Apify platform's computing, storage, and networking resources. 
 
 Cost depends on the target sites, your settings and API parameters, the load of your requests, and random network and target site conditions.
-
-From our testing, SuperScraper API is cheaper than ScrapingBee, ScrapingAnt, and ScraperAPI in many configurations, while in some others, it's more expensive.
 
 The best way to see your price is to conduct a real-world test.
 
