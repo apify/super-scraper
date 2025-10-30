@@ -12,7 +12,7 @@
 		"cheerio": "^1.0.0-rc.12",
 		"crawlee": "^3.15.2",
 		"header-generator": "^2.1.50",
-		"playwright": "*",
+		"playwright": "1.54.1",
 		"uuid": "^9.0.1"
 	},
 	"devDependencies": {
