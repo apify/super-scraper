@@ -1,4 +1,4 @@
-import { Actor, RequestQueue, log, Configuration } from 'apify';
+import { Actor, RequestQueue, log } from 'apify';
 import { PlaywrightCrawler } from 'crawlee';
 import type { PlaywrightCrawlingContext, RequestOptions, AutoscaledPoolOptions } from 'crawlee';
 import { MemoryStorage } from '@crawlee/memory-storage';
