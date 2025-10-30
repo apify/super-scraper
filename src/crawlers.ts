@@ -1,4 +1,4 @@
-import { Actor, RequestQueue, log } from 'apify';
+import { Actor, RequestQueue, log, Configuration } from 'apify';
 import { PlaywrightCrawler } from 'crawlee';
 import type { PlaywrightCrawlingContext, RequestOptions, AutoscaledPoolOptions } from 'crawlee';
 import { MemoryStorage } from '@crawlee/memory-storage';
@@ -18,6 +18,12 @@ export const DEFAULT_CRAWLER_OPTIONS: CrawlerOptions = {
 export const createAndStartCrawler = async (crawlerOptions: CrawlerOptions = DEFAULT_CRAWLER_OPTIONS) => {
     const client = new MemoryStorage();
     const queue = await RequestQueue.open(undefined, { storageClient: client });
+
+    const proxyPassword = Actor.config.get('proxyPassword');
+    console.log(`Proxy password type: ${typeof proxyPassword}, length: ${proxyPassword ? proxyPassword.length : 0}`);
+
+    // @ts-expect-error debug info
+    console.dir(Configuration.ENV_MAP);
 
     const proxyConfig = await Actor.createProxyConfiguration(crawlerOptions.proxyConfigurationOptions);
 
