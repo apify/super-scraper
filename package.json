@@ -4,7 +4,7 @@
 	"type": "module",
 	"description": "This is an example of an Apify actor.",
 	"engines": {
-		"node": ">=18.0.0"
+		"node": ">=22.0.0"
 	},
 	"dependencies": {
 		"@crawlee/memory-storage": "^3.15.2",
@@ -23,7 +23,8 @@
 		"@typescript-eslint/parser": "^6.7.2",
 		"eslint": "^8.50.0",
 		"tsx": "^4.6.2",
-		"typescript": "^5.3.3"
+        "typescript": "^5.8.3"
+
 	},
 	"scripts": {
 		"start": "npm run start:dev",
