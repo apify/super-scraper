@@ -10,7 +10,7 @@ import { EquivalentParameters, ScrapingBee, ScraperApi, ScrapingAnt } from './pa
 import { UserInputError } from './errors.js';
 import { validateAndTransformExtractRules } from './extract_rules_utils.js';
 import { parseAndValidateInstructions } from './instructions_utils.js';
-import { Label, VALID_RESOURCES } from './const.js';
+import { CREDENTIAL_HEADERS, Label, VALID_RESOURCES } from './const.js';
 
 const transformTimeMeasuresToRelative = (timeMeasures: TimeMeasure[]): TimeMeasure[] => {
     const firstMeasure = timeMeasures[0].time;
@@ -268,6 +268,9 @@ export function createRequestForCrawler(params: ParsedUrlQuery, req: IncomingMes
         const reqHeaders = req.headers;
         const headersToForward: Record<string, string> = {};
         for (const [key, val] of Object.entries(reqHeaders)) {
+            if (CREDENTIAL_HEADERS.includes(key.toLowerCase())) {
+                continue;
+            }
             if (Array.isArray(val)) {
                 continue;
             }
