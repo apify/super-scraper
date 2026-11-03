@@ -33,7 +33,7 @@
 		"build": "tsc",
 		"lint": "eslint ./src --ext .ts",
 		"lint:fix": "eslint ./src --ext .ts --fix",
-		"test": "echo \"Error: oops, the actor has no tests yet, sad!\" && exit 1",
+		"test": "node --import tsx --test test/*.test.ts",
 		"postinstall": "npx crawlee install-playwright-browsers"
 	},
 	"author": "It's not you it's me",

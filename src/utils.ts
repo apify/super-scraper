@@ -271,6 +271,10 @@ export function createRequestForCrawler(params: ParsedUrlQuery, req: IncomingMes
             if (CREDENTIAL_HEADERS.includes(key.toLowerCase())) {
                 continue;
             }
+            // 'host' holds this Actor's hostname, not the target website's
+            if (key.toLowerCase() === 'host') {
+                continue;
+            }
             if (Array.isArray(val)) {
                 continue;
             }
